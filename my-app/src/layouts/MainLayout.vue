@@ -16,16 +16,16 @@ import avatar from '../assets/avatar.png'
           class="mr-4 rounded"
       />
       <v-toolbar-title class="text-h6 text-primary font-weight-medium">
-        Dashboard
+        ÜL Abrechnung AC Weinheim
       </v-toolbar-title>
 
       <v-spacer></v-spacer>
 
-      <v-btn icon>
+<!--      <v-btn icon>
         <v-avatar size="40">
           <v-img :src="avatar" alt="Profil" />
         </v-avatar>
-      </v-btn>
+      </v-btn>-->
     </v-app-bar>
 
     <v-main>

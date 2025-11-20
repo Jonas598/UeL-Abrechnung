@@ -1,12 +1,14 @@
-// TypeScript
+// File: `my-app/src/router/index.ts`
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
+import EnterPassword from '../views/EnterPassword.vue'
 
 const routes: RouteRecordRaw[] = [
-    { path: '/', redirect: { name: 'Dashboard' } },
+    { path: '/', redirect: { name: 'Login' } },
     { path: '/login', name: 'Login', component: Login },
+    { path: '/enter-password', name: 'EnterPassword', component: EnterPassword },
     { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { requiresAuth: true } },
 ]
 
