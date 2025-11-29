@@ -5,7 +5,8 @@ import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
 import EnterPassword from '../views/EnterPassword.vue'
 import SetPassword from '../views/SetPassword.vue'
-import NoPassword from '../views/NoPassword.vue' // NEU
+import NoPassword from '../views/NoPassword.vue'
+import CreateUser from '../views/CreateUser.vue'
 
 const routes: RouteRecordRaw[] = [
     { path: '/', redirect: { name: 'Login' } },
@@ -13,7 +14,8 @@ const routes: RouteRecordRaw[] = [
     { path: '/enter-password', name: 'EnterPassword', component: EnterPassword },
     { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { requiresAuth: true } },
     { path: '/set-password', name: 'SetPassword', component: SetPassword },
-    { path: '/no-password', name: 'NoPassword', component: NoPassword }, // NEU
+    { path: '/no-password', name: 'NoPassword', component: NoPassword },
+    {path: "/create-user", name: "CreateUser", component: CreateUser },
 ]
 
 const router = createRouter({
