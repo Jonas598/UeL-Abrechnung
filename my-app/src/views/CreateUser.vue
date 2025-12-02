@@ -3,39 +3,29 @@ import { ref, watch, onMounted } from 'vue'
 import axios from 'axios'
 import type { VForm } from 'vuetify/components'
 
-// --- Typen ---
 type Department = {
   id: number
   name: string
 }
 
-// --- 1. State & Refs ---
-
 const form = ref<VForm | null>(null)
 const isLoading = ref(false)
 
-// Persönliche Daten
 const email = ref('')
 const firstName = ref('')
 const lastName = ref('')
 
-// Rollen-Status
 const isOffice = ref(false)
 const isDepartmentHead = ref(false)
 const isTrainer = ref(false)
 
-// Ausgewählte Abteilungen (Speichert die IDs)
-const selectedHeadDepartments = ref<number[]>([])
+const selectedHeadDepartment = ref<number | null>(null)
 const selectedTrainerDepartments = ref<number[]>([])
 
-// Verfügbare Abteilungen (werden vom Backend geladen)
 const departments = ref<Department[]>([])
-
-// --- 2. API Calls ---
 
 async function fetchDepartments() {
   try {
-    // Holt die Liste: [{id: 1, name: 'Fußball'}, ...]
     const response = await axios.get('http://127.0.0.1:8000/api/abteilungen')
     departments.value = response.data
   } catch (error) {
@@ -47,8 +37,6 @@ onMounted(() => {
   fetchDepartments()
 })
 
-// --- 3. Validierungs-Regeln ---
-
 const emailRules = [
   (v: string) => !!v?.trim() || 'E-Mail ist erforderlich',
   (v: string) => /.+@.+\..+/.test(v) || 'E-Mail muss gültig sein',
@@ -58,62 +46,47 @@ const requiredRules = [
   (v: string) => !!v?.trim() || 'Dieses Feld ist erforderlich',
 ]
 
-// --- 4. Watcher (Aufräumen) ---
-// Wenn die Checkbox deaktiviert wird, leeren wir die Auswahl.
-
 watch(isDepartmentHead, (isActive) => {
-  if (!isActive) selectedHeadDepartments.value = []
+  if (!isActive) selectedHeadDepartment.value = null
 })
 
 watch(isTrainer, (isActive) => {
   if (!isActive) selectedTrainerDepartments.value = []
 })
 
-// --- 5. Submit Logik ---
-
 async function onSubmit() {
-  // Validierung prüfen
   const { valid } = await form.value?.validate() || { valid: false }
   if (!valid) return
 
   isLoading.value = true
 
-  // Payload bauen
   const payload = {
     email: email.value,
-    vorname: firstName.value, // Frontend: firstName -> Backend: vorname
-    name: lastName.value,     // Frontend: lastName  -> Backend: name
-
-    // ÄNDERUNG: Direktes Mapping auf die User-Tabellenspalte
+    vorname: firstName.value,
+    name: lastName.value,
     isGeschaeftsstelle: isOffice.value,
-
     roles: {
-      // isOffice hier entfernt, da es ein User-Attribut ist
-      departmentHead: isDepartmentHead.value ? selectedHeadDepartments.value : [],
+      departmentHead: isDepartmentHead.value && selectedHeadDepartment.value !== null
+          ? [selectedHeadDepartment.value]
+          : [],
       trainer: isTrainer.value ? selectedTrainerDepartments.value : [],
     }
   }
 
-  // Request senden
   try {
     const response = await axios.post('http://127.0.0.1:8000/api/create-user', payload)
 
     console.log('Erfolg:', response.data)
     alert(`Benutzer ${firstName.value} erfolgreich angelegt!`)
 
-    // Formular zurücksetzen
     form.value?.reset()
-    // Manuelles Reset der Booleans
     isOffice.value = false
     isDepartmentHead.value = false
     isTrainer.value = false
-    // Arrays leeren
-    selectedHeadDepartments.value = []
+    selectedHeadDepartment.value = null
     selectedTrainerDepartments.value = []
-
   } catch (error: any) {
     console.error('API Error:', error)
-    // Verbesserte Fehleranzeige: Zeigt Details, falls vom Backend validation errors kommen
     let errorMsg = error.response?.data?.message || 'Serverfehler beim Anlegen.'
     if (error.response?.data?.errors) {
       errorMsg += '\n' + JSON.stringify(error.response.data.errors, null, 2)
@@ -129,7 +102,6 @@ async function onSubmit() {
   <div class="auth-page">
     <v-card elevation="6" class="pa-4 auth-card">
 
-      <!-- Ladebalken -->
       <v-progress-linear
           v-if="isLoading"
           indeterminate
@@ -148,7 +120,6 @@ async function onSubmit() {
       <v-card-text class="pa-0">
         <v-form ref="form" @submit.prevent="onSubmit">
 
-          <!-- Personendaten -->
           <v-text-field
               v-model="email"
               label="E-Mail"
@@ -183,7 +154,6 @@ async function onSubmit() {
               class="mb-4"
           />
 
-          <!-- 1. Geschäftsstelle -->
           <div class="role-group" :class="{ 'role-active': isOffice }">
             <v-checkbox
                 v-model="isOffice"
@@ -197,7 +167,6 @@ async function onSubmit() {
             ></v-checkbox>
           </div>
 
-          <!-- 2. Abteilungsleitung -->
           <div class="role-group mt-2" :class="{ 'role-active': isDepartmentHead }">
             <v-checkbox
                 v-model="isDepartmentHead"
@@ -213,25 +182,21 @@ async function onSubmit() {
             <v-expand-transition>
               <div v-if="isDepartmentHead" class="pl-8 pt-2">
                 <v-select
-                    v-model="selectedHeadDepartments"
+                    v-model="selectedHeadDepartment"
                     :items="departments"
                     item-title="name"
                     item-value="id"
-                    label="Abteilungen wählen"
-                    multiple
-                    chips
-                    closable-chips
+                    label="Abteilung wählen"
                     variant="outlined"
                     density="compact"
                     placeholder="Bitte wählen..."
-                    :rules="[v => v.length > 0 || 'Bitte mindestens eine Abteilung wählen']"
+                    :rules="[v => !!v || 'Bitte eine Abteilung wählen']"
                     no-data-text="Keine Abteilungen geladen"
                 ></v-select>
               </div>
             </v-expand-transition>
           </div>
 
-          <!-- 3. Übungsleiter -->
           <div class="role-group mt-2" :class="{ 'role-active': isTrainer }">
             <v-checkbox
                 v-model="isTrainer"
@@ -265,7 +230,6 @@ async function onSubmit() {
             </v-expand-transition>
           </div>
 
-          <!-- Submit Button -->
           <div class="d-flex justify-center mt-6">
             <v-btn
                 color="primary"
@@ -308,18 +272,17 @@ async function onSubmit() {
 
 .role-group {
   border-radius: 8px;
-  padding: 4px; /* Etwas Platz für den Hintergrund */
+  padding: 4px;
   transition: background-color 0.2s ease;
 }
 
 .role-active {
-  background-color: rgba(25, 118, 210, 0.08); /* Sehr helles Blau als Hintergrund */
+  background-color: rgba(25, 118, 210, 0.08);
 }
 
-/* Label fett machen, wenn aktiv */
 .role-active :deep(.v-label) {
   font-weight: 600;
-  color: #1565C0; /* Etwas dunkleres Blau für den Text */
+  color: #1565C0;
   opacity: 1;
 }
 </style>
