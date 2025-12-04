@@ -73,6 +73,15 @@ const handleLogout = async () => {
         <p class="mt-2">Hier ist dein geschützter Bereich für Zeiterfassung und Co.</p>
       </template>
     </v-card>
+
+    <v-btn
+        class="mt-4"
+        color="primary"
+        prepend-icon="mdi-clock-outline"
+        @click="router.push({ name: 'Timesheet' })"
+    >
+      Zur Stundenerfassung
+    </v-btn>
   </div>
 </template>
 
