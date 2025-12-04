@@ -114,6 +114,7 @@ async function submitPassword() {
           </v-btn>
         </v-card-actions>
       </v-form>
+      <p>Wenn deine E-Mail-Adresse schon registriert wurde, hast du eine E-Mail zur Passwortfestlegung bekommen.<br>Schaue auch im Spam Ordner nach!</p>
     </v-card>
   </div>
 </template>

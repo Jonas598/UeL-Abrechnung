@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AbteilungController;
+use App\Http\Controllers\StundeneintragController;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,13 +19,18 @@ Route::post('/set-password', [AuthController::class, 'setNewPassword']);
 
 // Geschützte Routen (nur mit gültigem Bearer Token zugänglich)
 Route::group(['middleware' => ['auth:sanctum']], function () {
-
     // Logout funktioniert nur, wenn man eingeloggt ist
     Route::post('/logout', [AuthController::class, 'logout']);
-
     // Beispiel: Aktuellen Benutzer abrufen
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-    Route::post('/create-user', [AuthController::class, 'createUser']);
+    Route::get('/dashboard', [AuthController::class, 'dashboard']);
+    Route::post('/stundeneintrag', [StundeneintragController::class, 'store']);
+
+    //Admin-Routen
+    Route::group(['middleware' => ['admin']], function ()
+    {
+        Route::post('/create-user', [AuthController::class, 'createUser']);
+    });
 });

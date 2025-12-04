@@ -27,7 +27,7 @@ class AuthController extends Controller
             'vorname' => 'required|string', // Vorname
             'email' => 'required|string|email|unique:user,email', // Tabelle 'user' beachten
             'isGeschaeftsstelle' => 'boolean',
-            'roles.departmentHead' => 'array', // Array von IDs
+            'roles.departmentHead' => 'array|max:1', // Array von IDs
             'roles.trainer' => 'array',        // Array von IDs
         ]);
 
@@ -156,6 +156,43 @@ class AuthController extends Controller
             'token' => $token,
             'message' => 'Login erfolgreich'
         ], 200);
+    }
+
+
+    /**
+     * Dashboard Daten abrufen (User + Rollen/Abteilungen)
+     */
+    public function dashboard(Request $request)
+    {
+        // 1. Den aktuell eingeloggten User holen
+        $user = $request->user();
+
+        // 2. Die Verknüpfungen aus der DB holen
+        // Wir suchen in der Tabelle 'UserRolleAbteilung' alle Einträge für diesen User.
+        // 'with' lädt die verknüpften Tabellen 'rolle' und 'abteilung' direkt mit (Eager Loading).
+        $zuweisungen = UserRolleAbteilung::where('fk_userID', $user->UserID)
+            ->with(['rolle', 'abteilung'])
+            ->get();
+
+        // 3. Daten formatieren (nur das Nötigste für das Frontend)
+        $formattedData = $zuweisungen->map(function ($item) {
+            return [
+                'rolle' => $item->rolle->bezeichnung ?? 'Unbekannt',
+                'abteilung' => $item->abteilung->name ?? 'Keine Abteilung',
+            ];
+        });
+
+        // 4. Alles zurückgeben
+        return response()->json([
+            'user' => [
+                'name' => $user->name,
+                'vorname' => $user->vorname,
+                'email' => $user->email,
+                'isAdmin' => $user->isAdmin,
+                'isGeschaeftsstelle' => $user->isGeschaeftsstelle
+            ],
+            'berechtigungen' => $formattedData
+        ]);
     }
 
     /**
