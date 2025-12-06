@@ -3,25 +3,30 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
+// Typ-Definition für die Daten
+type Berechtigung = {
+  rolle: string
+  abteilung: string
+}
+
 const router = useRouter()
-// Variable für den User (Name, Email etc.)
 const user = ref<any>(null)
+const permissions = ref<Berechtigung[]>([]) // Hier speichern wir die Rollen
 const isLoading = ref(true)
 
-// API-URL für User-Daten (passt zu deiner api.php route: Route::get('/user'...))
 const API_URL = 'http://127.0.0.1:8000/api'
 
-// Beim Laden der Komponente: User Daten holen
 onMounted(async () => {
   try {
-    // Da wir das Token schon im Header haben (aus main.ts oder EnterPassword),
-    // können wir direkt anfragen.
-    const response = await axios.get(`${API_URL}/user`)
-    user.value = response.data
+    // Wir rufen den Dashboard-Endpoint auf
+    const response = await axios.get(`${API_URL}/dashboard`)
+
+    // Daten zuweisen
+    user.value = response.data.user
+    permissions.value = response.data.berechtigungen
+
   } catch (error) {
-    console.error('Fehler beim Laden des Users:', error)
-    // Wenn der User nicht geladen werden kann (z.B. Token ungültig),
-    // schicken wir ihn zum Login zurück.
+    console.error('Fehler beim Laden:', error)
     handleLogout()
   } finally {
     isLoading.value = false
@@ -56,6 +61,8 @@ const handleLogout = async () => {
         </div>
       </div>
 
+
+
       <v-btn
           color="error"
           variant="tonal"
@@ -71,24 +78,117 @@ const handleLogout = async () => {
       <template v-if="user">
         <p>Du bist eingeloggt als: <strong>{{ user.email }}</strong></p>
         <p class="mt-2">Hier ist dein geschützter Bereich für Zeiterfassung und Co.</p>
-      </template>
-    </v-card>
+        <div class="mt-2 text-body-2 text-medium-emphasis">
+          <span v-if="user.isAdmin">Du hast Admin-Rechte!</span>
+        </div>
 
-    <v-btn
-        class="mt-4"
-        color="primary"
-        prepend-icon="mdi-clock-outline"
-        @click="router.push({ name: 'Timesheet' })"
-    >
-      Zur Stundenerfassung
-    </v-btn>
+        <v-divider class="my-4"></v-divider>
+
+        <h3 class="text-subtitle-1 font-weight-bold mb-2">Deine Abteilungen & Rollen</h3>
+
+        <ul v-if="permissions.length > 0" class="ml-4">
+          <li v-for="(item, index) in permissions" :key="index" class="mb-1">
+            <strong>{{ item.abteilung }}</strong>:
+            {{ item.rolle === 'Uebungsleiter' ? 'Übungsleiter' : item.rolle }}
+          </li>
+        </ul>
+        <p v-else class="text-caption text-medium-emphasis">
+          Keine Abteilungen zugewiesen.
+        </p>
+      </template>
+
+      <div class="btn-grid mt-4">
+        <div class="section-title">Übungsleiter Bereich</div>
+
+        <v-btn
+            class="mt-4 w-100"
+            color="primary"
+            prepend-icon="mdi-clock-outline"
+            @click="router.push({ name: 'Timesheet' })"
+        >
+          Stunde erfassen
+        </v-btn>
+
+        <v-btn
+            class="mt-4 w-100"
+            color="primary"
+            prepend-icon="mdi-clock-outline"
+            @click="router.push({ name: 'Drafts' })"
+        >
+          Übersicht Entwürfe
+        </v-btn>
+
+        <v-btn
+            class="mt-4 w-100"
+            color="primary"
+            prepend-icon="mdi-clock-outline"
+            @click="router.push({ name: 'Submitted' })"
+        >
+          Übersicht Abrechnungen
+        </v-btn>
+
+        <div v-if="user?.isAdmin">
+          <div class="section-title">Admin Bereich</div>
+
+          <v-btn
+              class="mt-4 w-100"
+              color="primary"
+              prepend-icon="mdi-account-plus"
+              :to="{ name: 'CreateUser' }"
+          >
+            User erstellen
+          </v-btn>
+        </div>
+      </div>
+    </v-card>
   </div>
 </template>
 
 <style scoped>
-.page {
-  padding: 24px;
-  max-width: 800px;
-  margin: 0 auto;
+.btn-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  /* row-gap (vertical) smaller, column-gap slightly larger */
+  row-gap: 5px;
+  column-gap: 16px;
+  align-items: start; /* keep items aligned to grid rows */
+}
+
+/* section titles: more space above, less below */
+.section-title {
+  grid-column: 1 / -1; /* span full width */
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(0,0,0,0.7);
+  margin-top: 40px;   /* more space above */
+  margin-bottom: 0px; /* less space below */
+  align-self: center;
+}
+
+/* standardized button appearance inside the grid:
+   - full width
+   - fixed height so both columns align on the same row
+   - center label vertically */
+.btn-grid .grid-btn {
+  width: 100%;
+  height: 44px; /* adjust if you want taller/shorter buttons */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 16px;
+  padding-right: 16px;
+  text-transform: uppercase;
+  box-sizing: border-box;
+}
+
+/* responsive: single column on small screens */
+@media (max-width: 600px) {
+  .btn-grid {
+    grid-template-columns: 1fr;
+  }
+  /* when single column, keep buttons a bit taller if needed */
+  .btn-grid .grid-btn {
+    height: 48px;
+  }
 }
 </style>

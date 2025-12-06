@@ -8,6 +8,8 @@ import SetPassword from '../views/SetPassword.vue'
 import NoPassword from '../views/NoPassword.vue'
 import CreateUser from '../views/CreateUser.vue'
 import Timesheet from "../views/Timesheet.vue";
+import Submitted from "../views/Submitted.vue";
+import Drafts from "../views/Drafts.vue";
 
 const routes: RouteRecordRaw[] = [
     { path: '/', redirect: { name: 'Login' } },
@@ -18,6 +20,8 @@ const routes: RouteRecordRaw[] = [
     { path: '/no-password', name: 'NoPassword', component: NoPassword },
     { path: '/create-user', name: 'CreateUser', component: CreateUser, meta: { requiresAuth: true }},
     { path: '/timesheet', name: 'Timesheet', component: Timesheet, meta: { requiresAuth: true } },
+    { path: '/drafts', name: 'Drafts', component: Drafts, meta: { requiresAuth: true } },
+    { path: '/submitted', name: 'Submitted', component: Submitted, meta: { requiresAuth: true } },
 ]
 
 const router = createRouter({
@@ -34,7 +38,7 @@ router.beforeEach((to, _from, next) => {
         return next({ name: 'Dashboard' })
     }
 
-    // EnterPassword und NoPassword für eingeloggte sperren
+    // EnterPassword und NoPassword fÃ¼r eingeloggte sperren
     if (
         isAuthenticated() &&
         (to.name === 'EnterPassword' || to.name === 'NoPassword')

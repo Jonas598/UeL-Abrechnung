@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from 'axios'
 import type { VForm } from 'vuetify/components'
 
@@ -23,6 +24,7 @@ const selectedHeadDepartment = ref<number | null>(null)
 const selectedTrainerDepartments = ref<number[]>([])
 
 const departments = ref<Department[]>([])
+const router = useRouter()
 
 async function fetchDepartments() {
   try {
@@ -94,12 +96,26 @@ async function onSubmit() {
     alert(errorMsg)
   } finally {
     isLoading.value = false
+
   }
+}
+function goBack() {
+  router.push({ name: 'Dashboard' })
 }
 </script>
 
 <template>
-  <div class="auth-page">
+  <div class="page">
+    <div class="d-flex justify-start mb-4">
+      <v-btn
+          color="primary"
+          variant="tonal"
+          prepend-icon="mdi-arrow-left"
+          @click="goBack"
+      >
+        Zurück zum Dashboard
+      </v-btn>
+    </div>
     <v-card elevation="6" class="pa-4 auth-card">
 
       <v-progress-linear
@@ -250,14 +266,10 @@ async function onSubmit() {
 </template>
 
 <style scoped>
-.auth-page {
-  max-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.page {
   padding: 24px;
-  box-sizing: border-box;
-  overflow: hidden;
+  max-width: 640px;
+  margin: 0 auto;
 }
 
 .auth-card {

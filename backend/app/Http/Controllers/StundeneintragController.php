@@ -53,7 +53,7 @@ class StundeneintragController extends Controller
 
                 // B. Den initialen Status setzen (Log-Eintrag)
                 // Angenommen: StatusID 1 = "Neu" oder "Erstellt"
-                $initialStatusID = 2;
+                $initialStatusID = 4;
 
                 StundeneintragStatusLog::create([
                     'fk_stundeneintragID' => $eintrag->EintragID, // Die ID vom gerade erstellten Eintrag

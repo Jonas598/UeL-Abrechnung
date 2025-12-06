@@ -164,21 +164,19 @@ class AuthController extends Controller
      */
     public function dashboard(Request $request)
     {
-        // 1. Den aktuell eingeloggten User holen
         $user = $request->user();
 
-        // 2. Die Verknüpfungen aus der DB holen
-        // Wir suchen in der Tabelle 'UserRolleAbteilung' alle Einträge für diesen User.
-        // 'with' lädt die verknüpften Tabellen 'rolle' und 'abteilung' direkt mit (Eager Loading).
         $zuweisungen = UserRolleAbteilung::where('fk_userID', $user->UserID)
             ->with(['rolle', 'abteilung'])
             ->get();
 
-        // 3. Daten formatieren (nur das Nötigste für das Frontend)
         $formattedData = $zuweisungen->map(function ($item) {
             return [
                 'rolle' => $item->rolle->bezeichnung ?? 'Unbekannt',
                 'abteilung' => $item->abteilung->name ?? 'Keine Abteilung',
+
+                // HIER NEU: Wir brauchen die ID für das Dropdown!
+                'abteilungId' => $item->fk_abteilungID,
             ];
         });
 
