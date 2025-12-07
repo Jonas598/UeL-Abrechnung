@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import { computed } from 'vue'
 
 // Typ-Definition für die Daten
 type Berechtigung = {
@@ -15,6 +16,19 @@ const permissions = ref<Berechtigung[]>([]) // Hier speichern wir die Rollen
 const isLoading = ref(true)
 
 const API_URL = 'http://127.0.0.1:8000/api'
+
+// Prüft, ob der User irgendwo "Abteilungsleiter" ist
+const isDepartmentHead = computed(() => {
+  return permissions.value.some(p => p.rolle === 'Abteilungsleiter')
+})
+
+// Prüft, ob der User irgendwo "Uebungsleiter" ist
+const isTrainer = computed(() => {
+  return permissions.value.some(p => p.rolle === 'Übungsleiter')
+})
+
+// Admin ist einfach:
+const isAdmin = computed(() => user.value?.isAdmin === true)
 
 onMounted(async () => {
   try {

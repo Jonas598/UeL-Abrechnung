@@ -23,6 +23,7 @@ class StundeneintragController extends Controller
             'ende'          => 'required|date_format:H:i|after:beginn', // Ende muss nach Beginn sein
             'kurs'          => 'nullable|string',
             'fk_abteilung'  => 'nullable|exists:abteilung_definition,AbteilungID', // Prüft, ob Abteilung existiert
+            'status_id'         => 'required|integer|in:2,4',
         ]);
 
         // 2. Dauer automatisch berechnen (optional, aber praktisch)
@@ -31,7 +32,7 @@ class StundeneintragController extends Controller
         $end   = Carbon::createFromFormat('H:i', $validated['ende']);
 
         // Berechnet Differenz in Stunden als Dezimalzahl
-        $dauer = $end->floatDiffInHours($start);
+        $dauer = $start->diffInMinutes($end) / 60;
 
         // 3. Speichern in einer Transaktion
         try {
@@ -51,13 +52,10 @@ class StundeneintragController extends Controller
                     'createdAt'       => now(),
                 ]);
 
-                // B. Den initialen Status setzen (Log-Eintrag)
-                // Angenommen: StatusID 1 = "Neu" oder "Erstellt"
-                $initialStatusID = 4;
 
                 StundeneintragStatusLog::create([
                     'fk_stundeneintragID' => $eintrag->EintragID, // Die ID vom gerade erstellten Eintrag
-                    'fk_statusID'         => $initialStatusID,
+                    'fk_statusID'         => $validated['status_id'],
                     'modifiedBy'          => Auth::id(),
                     'modifiedAt'          => now(),
                     'kommentar'           => 'Eintrag neu erstellt.',
@@ -73,8 +71,15 @@ class StundeneintragController extends Controller
         }
 
         // HIER ÄNDERN: Am Ende der Funktion immer JSON zurückgeben (kein redirect!)
-        return response()->json([
-            'message' => 'Stundeneintrag erfolgreich erstellt',
-        ], 201);
+        if($validated['status_id'] == 2) {
+            return response()->json([
+                'message' => 'Stundeneintrag erfolgreich erstellt und eingereicht',
+            ], 201);
+        }
+        elseif ($validated['status_id'] == 4) {
+            return response()->json([
+                'message' => 'Stundeneintrag als Entwurf erstellt',
+            ], 201);
+        }
     }
 }

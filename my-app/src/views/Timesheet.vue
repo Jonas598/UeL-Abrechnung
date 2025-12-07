@@ -21,14 +21,12 @@ const course = ref('')
 const selectedDepartment = ref<number | null>(null)
 
 const departments = ref<Department[]>([])
-// Beispiel-Optionen für die Combobox
-const courseOptions = ['Training', 'Wettkampf', 'Vorstandssitzung', 'Pflegearbeiten']
 
 // --- API: ABTEILUNGEN LADEN ---
 async function fetchUserDepartments() {
   try {
     // KEIN manueller Header mehr nötig!
-    const response = await axios.get('http://127.0.0.1:8000/api/meine-abteilungen')
+    const response = await axios.get('http://127.0.0.1:8000/api/meine-uel-abteilungen')
 
     departments.value = response.data
 
@@ -65,50 +63,42 @@ const endTimeRules = [
 ]
 
 // --- SUBMIT ---
-async function onSubmit() {
+async function onSubmit(targetStatusId: number) {
+
   const { valid } = await form.value?.validate() || { valid: false }
   if (!valid) return
 
   isLoading.value = true
+  // const token ... (Global oder LocalStorage, wie du es hast)
 
   const payload = {
     datum: date.value,
     beginn: startTime.value,
     ende: endTime.value,
     kurs: course.value,
-    fk_abteilung: selectedDepartment.value
+    fk_abteilung: selectedDepartment.value,
+
+    // NEU: Wir schicken mit, welcher Button geklickt wurde
+    status_id: targetStatusId
   }
 
   try {
-    // KEIN manueller Header mehr nötig!
-    await axios.post('http://127.0.0.1:8000/api/stundeneintrag', payload)
+    await axios.post('http://127.0.0.1:8000/api/stundeneintrag', payload) // Header global oder hier
 
-    alert('Stundeneintrag erfolgreich gespeichert!')
+    // Text anpassen je nach Aktion
+    const msg = targetStatusId === 4 ? 'Als Entwurf gespeichert!' : 'Erfolgreich eingereicht!'
+    alert(msg)
 
-    // Reset
+    // Reset Formular
     form.value?.reset()
     if (departments.value.length === 1) {
       selectedDepartment.value = departments.value[0].id
     }
 
   } catch (error: any) {
-    console.error('API Error:', error)
-
-    let errorMsg = 'Fehler beim Speichern.'
-
-    if (error.response) {
-      if (error.response.status === 401) {
-        router.push({ name: 'Login' }) // Nicht eingeloggt
-        return
-      }
-      if (error.response.status === 422) {
-        errorMsg = 'Überprüfung fehlgeschlagen:\n' + JSON.stringify(error.response.data.errors, null, 2)
-      }
-      else if (error.response.data && error.response.data.message) {
-        errorMsg = error.response.data.message
-      }
-    }
-    alert(errorMsg)
+    // ... dein Error Handling bleibt gleich ...
+    console.error(error)
+    alert('Fehler beim Speichern.')
   } finally {
     isLoading.value = false
   }
@@ -146,13 +136,6 @@ function goBack() {
           <h3 class="ma-0">Stundenerfassung</h3>
           <div class="caption">Zeit und Tätigkeit eintragen</div>
         </div>
-        <v-btn
-            icon="mdi-close"
-            variant="text"
-            density="comfortable"
-            @click="goBack"
-            title="Abbrechen"
-        ></v-btn>
       </v-card-title>
 
       <v-card-text class="pa-0">
@@ -163,7 +146,7 @@ function goBack() {
               :items="departments"
               item-title="name"
               item-value="id"
-              label="Abteilung / Bereich"
+              label="Abteilung"
               variant="outlined"
               density="comfortable"
               :rules="requiredRule"
@@ -206,38 +189,41 @@ function goBack() {
 
           <v-combobox
               v-model="course"
-              :items="courseOptions"
-              label="Kurs / Tätigkeit"
+              label="Kurs"
               variant="outlined"
               density="comfortable"
               placeholder="z.B. Training U14"
               class="mb-4"
-              hint="Tippen oder Auswählen"
-              persistent-hint
           ></v-combobox>
 
-          <div class="d-flex justify-center mt-6" style="gap: 16px;">
+          <div class="d-flex justify-center mt-6 flex-wrap" style="gap: 16px;">
 
             <v-btn
-                variant="text"
-                color="grey-darken-1"
-                @click="goBack"
+                color="blue-grey-lighten-4"
+                variant="flat"
+                class="submit-btn text-blue-grey-darken-4"
+                style="min-width:140px"
+                prepend-icon="mdi-content-save-outline"
+                :loading="isLoading"
+                :disabled="isLoading"
+                @click="onSubmit(4)"
             >
-              Abbrechen
+              Entwurf
             </v-btn>
 
             <v-btn
                 color="primary"
                 class="submit-btn"
-                style="min-width:160px"
-                type="submit"
+                style="min-width:140px"
+                prepend-icon="mdi-send"
                 :loading="isLoading"
                 :disabled="isLoading"
+                @click="onSubmit(2)"
             >
-              Speichern
+              Abschicken
             </v-btn>
-          </div>
 
+          </div>
         </v-form>
       </v-card-text>
     </v-card>

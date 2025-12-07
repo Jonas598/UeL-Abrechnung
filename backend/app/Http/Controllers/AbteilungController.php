@@ -15,28 +15,56 @@ class AbteilungController extends Controller
     }
 
     // NEU: Nur die Abteilungen des Users
-    public function getMeineAbteilungen(Request $request)
+    public function getMeineUelAbteilungen(Request $request)
     {
         $user = $request->user();
 
-        // 1. Zuweisungen laden (inklusive der Abteilungs-Daten)
         $zuweisungen = UserRolleAbteilung::where('fk_userID', $user->UserID)
-            ->with('abteilung') // Eager Loading
+            // HIER IST DER FILTER:
+            ->whereHas('rolle', function ($query) {
+                $query->where('bezeichnung', 'Uebungsleiter');
+            })
+            ->with('abteilung')
             ->get();
 
-        // 2. Abteilungen extrahieren und Duplikate entfernen
-        // (Unique basierend auf der AbteilungID)
+        // Mapping und Formatierung (bleibt gleich)
         $abteilungen = $zuweisungen->map(function ($item) {
             return $item->abteilung;
         })->unique('AbteilungID');
 
-        // 3. Formatieren (gleich wie bei getAbteilung: 'id' und 'name')
         $result = $abteilungen->map(function ($dept) {
             return [
                 'id' => $dept->AbteilungID,
                 'name' => $dept->name
             ];
-        })->values(); // 'values()' sorgt dafür, dass das JSON-Array sauber bei Index 0 beginnt
+        })->values();
+
+        return response()->json($result);
+    }
+
+    public function getMeineLeiterAbteilungen(Request $request)
+    {
+        $user = $request->user();
+
+        $zuweisungen = UserRolleAbteilung::where('fk_userID', $user->UserID)
+            // HIER IST DER FILTER:
+            ->whereHas('rolle', function ($query) {
+                $query->where('bezeichnung', 'Abteilungsleiter');
+            })
+            ->with('abteilung')
+            ->get();
+
+        // Mapping und Formatierung
+        $abteilungen = $zuweisungen->map(function ($item) {
+            return $item->abteilung;
+        })->unique('AbteilungID');
+
+        $result = $abteilungen->map(function ($dept) {
+            return [
+                'id' => $dept->AbteilungID,
+                'name' => $dept->name
+            ];
+        })->values();
 
         return response()->json($result);
     }

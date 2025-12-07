@@ -26,7 +26,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         return $request->user();
     });
     Route::get('/dashboard', [AuthController::class, 'dashboard']);
-    Route::get('/meine-abteilungen', [AbteilungController::class, 'getMeineAbteilungen']);
+    Route::get('/meine-uel-abteilungen', [AbteilungController::class, 'getMeineUelAbteilungen']);
     Route::post('/stundeneintrag', [StundeneintragController::class, 'store']);
 
     //Admin-Routen
