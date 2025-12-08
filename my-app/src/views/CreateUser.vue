@@ -265,17 +265,27 @@ function goBack() {
   </div>
 </template>
 
+/* Vue */
 <style scoped>
+
 .page {
   padding: 24px;
-  max-width: 640px;
-  margin: 0 auto;
+  /* max-width und margin entfernt */
+}
+
+.d-flex.justify-start.mb-4 {
+  justify-content: flex-start;
+  margin-bottom: 16px;
+  max-width: 420px; /* Hinzugefügt */
+  margin-left: auto;  /* Hinzugefügt */
+  margin-right: auto; /* Hinzugefügt */
 }
 
 .auth-card {
   width: 100%;
   max-width: 420px;
   border-radius: 12px;
+  margin: 0 auto;
 }
 
 .submit-btn {
@@ -297,4 +307,8 @@ function goBack() {
   color: #1565C0;
   opacity: 1;
 }
+
 </style>
+
+
+

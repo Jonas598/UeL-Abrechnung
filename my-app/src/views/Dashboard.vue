@@ -140,7 +140,7 @@ const handleLogout = async () => {
         >
           Übersicht Abrechnungen
         </v-btn>
-
+        <br>
         <div v-if="user?.isAdmin">
           <div class="section-title">Admin Bereich</div>
 
