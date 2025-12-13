@@ -119,12 +119,6 @@ class StundeneintragController extends Controller
             return response()->json(['message' => 'Dazu bist du nicht berechtigt.'], 403);
         }
 
-        // Optional: Nur Entwürfe löschbar lassen
-        $currentStatus = $eintrag->aktuellerStatusLog->fk_statusID ?? 0;
-        if ($currentStatus != 10) {
-            return response()->json(['message' => 'Nur Entwürfe können gelöscht werden.'], 403);
-        }
-
         $eintrag->delete();
 
         return response()->json(['message' => 'Eintrag erfolgreich gelöscht.']);
