@@ -115,7 +115,7 @@ class StundeneintragController extends Controller
         $isGs    = $user && property_exists($user, 'isGeschaeftsstelle') ? $user->isGeschaeftsstelle : false;
 
         // Nur Owner oder Geschäftsstelle dürfen löschen
-        if (!$isOwner && !$isGs) {
+        if ($isOwner && $isGs) {
             return response()->json(['message' => 'Dazu bist du nicht berechtigt.'], 403);
         }
 
