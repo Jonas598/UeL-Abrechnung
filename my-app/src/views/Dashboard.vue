@@ -184,6 +184,25 @@ const handleLogout = async () => {
           >
             Alle Abrechnungen
           </v-btn>
+
+          <v-btn
+              class="w-100"
+              color="success"
+              prepend-icon="mdi-cash-multiple"
+              @click="router.push({ name: 'TimesheetsToPay' })"
+          >
+            Zu bezahlende Abrechnungen
+          </v-btn>
+
+          <v-btn
+              class="w-100"
+              color="secondary"
+              prepend-icon="mdi-history"
+              @click="router.push({ name: 'TimesheetHistory' })"
+          >
+            Abrechnungshistorie
+          </v-btn>
+
           <div></div>
         </template>
 

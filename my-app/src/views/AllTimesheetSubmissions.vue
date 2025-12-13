@@ -13,6 +13,7 @@ function goBack() {
 const API_URL = 'http://127.0.0.1:8000/api/geschaeftsstelle/abrechnungen'
 
 interface TimesheetEntry {
+  id?: number
   datum: string
   dauer: number
   kurs: string
@@ -25,7 +26,7 @@ interface Submission {
   zeitraum: string
   stunden: number
   datumGenehmigtAL: string
-  genehmigtDurch: string; // <--- NEU
+  genehmigtDurch: string // <--- NEU
   details: TimesheetEntry[]
 }
 
@@ -51,7 +52,7 @@ async function fetchSubmissions() {
 }
 
 async function finalizeSubmission(id: number) {
-  if (!confirm("Möchtest du diese Abrechnung final freigeben (zur Auszahlung)?")) return
+  if (!confirm('Möchtest du diese Abrechnung final freigeben (zur Auszahlung)?')) return
 
   isProcessingId.value = id
   try {
@@ -59,7 +60,7 @@ async function finalizeSubmission(id: number) {
     // Aus Liste entfernen
     submissions.value = submissions.value.filter(s => s.AbrechnungID !== id)
   } catch (error: any) {
-    alert("Fehler: " + (error.response?.data?.message || "Konnte nicht freigegeben werden."))
+    alert('Fehler: ' + (error.response?.data?.message || 'Konnte nicht freigegeben werden.'))
   } finally {
     isProcessingId.value = null
   }
@@ -70,6 +71,34 @@ function toggleDetails(id: number) {
     expandedIds.value = expandedIds.value.filter(x => x !== id)
   } else {
     expandedIds.value.push(id)
+  }
+}
+
+function editEntry(entryId: number | undefined) {
+  if (!entryId) return
+  router.push({ name: 'Timesheet', query: { id: entryId } })
+}
+
+// HIER NEU EINFÜGEN:
+async function deleteEntry(submissionId: number, entry: TimesheetEntry, indexInDetails: number) {
+  if (!entry.id) {
+    alert('Dieser Stundeneintrag hat keine ID und kann nicht gelöscht werden.')
+    return
+  }
+
+  if (!confirm('Möchtest du diesen Stundeneintrag wirklich löschen?')) return
+
+  try {
+    await axios.delete(`http://127.0.0.1:8000/api/stundeneintrag/${entry.id}`)
+
+    // Lokale Liste aktualisieren
+    const submission = submissions.value.find(s => s.AbrechnungID === submissionId)
+    if (submission) {
+      submission.details.splice(indexInDetails, 1)
+      submission.stunden = submission.details.reduce((sum, d) => sum + d.dauer, 0)
+    }
+  } catch (error: any) {
+    alert('Fehler beim Löschen: ' + (error.response?.data?.message || 'Unbekannter Fehler'))
   }
 }
 
@@ -186,6 +215,7 @@ onMounted(() => {
                     <th class="text-left">Datum</th>
                     <th class="text-left">Info</th>
                     <th class="text-right">Dauer</th>
+                    <th class="text-right">Aktionen</th>
                   </tr>
                   </thead>
                   <tbody>
@@ -193,6 +223,26 @@ onMounted(() => {
                     <td>{{ d.datum }}</td>
                     <td>{{ d.kurs || '-' }}</td>
                     <td class="text-right">{{ d.dauer }}</td>
+                    <td class="text-right">
+                      <!-- Stift: Stunde bearbeiten -->
+                      <v-btn
+                          size="x-small"
+                          variant="text"
+                          color="primary"
+                          icon="mdi-pencil"
+                          :title="'Stundeneintrag bearbeiten'"
+                          @click.stop="editEntry(d.id)"
+                      />
+                      <!-- Mülleimer: Stunde löschen -->
+                      <v-btn
+                          size="x-small"
+                          variant="text"
+                          color="error"
+                          icon="mdi-delete"
+                          :title="'Stundeneintrag löschen'"
+                          @click.stop="deleteEntry(item.AbrechnungID, d, i)"
+                      />
+                    </td>
                   </tr>
                   </tbody>
                 </v-table>

@@ -104,28 +104,27 @@ class StundeneintragController extends Controller
      */
     public function deleteEintrag(Request $request, $id)
     {
-        // 1. Den Eintrag suchen
         $eintrag = Stundeneintrag::find($id);
 
         if (!$eintrag) {
             return response()->json(['message' => 'Eintrag nicht gefunden.'], 404);
         }
 
-        // 2. SICHERHEIT: Gehört der Eintrag dem User?
-        // Wir vergleichen die createdBy Spalte mit der ID des eingeloggten Users
-        if ($eintrag->createdBy != $request->user()->UserID) {
+        $user = $request->user();
+        $isOwner = $eintrag->createdBy == $user->UserID;
+        $isGs    = $user && property_exists($user, 'isGeschaeftsstelle') ? $user->isGeschaeftsstelle : false;
+
+        // Nur Owner oder Geschäftsstelle dürfen löschen
+        if (!$isOwner && !$isGs) {
             return response()->json(['message' => 'Dazu bist du nicht berechtigt.'], 403);
         }
 
-        // 3. Optional: Prüfen, ob es wirklich nur ein Entwurf ist
-        // (Falls man eingereichte Stunden nicht mehr löschen darf)
+        // Optional: Nur Entwürfe löschbar lassen
         $currentStatus = $eintrag->aktuellerStatusLog->fk_statusID ?? 0;
-        if ($currentStatus != 10) { // 4 = Entwurf
-           return response()->json(['message' => 'Nur Entwürfe können gelöscht werden.'], 403);
+        if ($currentStatus != 10) {
+            return response()->json(['message' => 'Nur Entwürfe können gelöscht werden.'], 403);
         }
 
-        // 4. Löschen
-        // Dank 'onDelete cascade' in der DB werden die Logs automatisch mit entfernt
         $eintrag->delete();
 
         return response()->json(['message' => 'Eintrag erfolgreich gelöscht.']);
@@ -138,8 +137,12 @@ class StundeneintragController extends Controller
     {
         $eintrag = Stundeneintrag::find($id);
 
-        // Sicherheitscheck: Gehört der Eintrag mir?
-        if (!$eintrag || $eintrag->createdBy != $request->user()->UserID) {
+        $user = $request->user();
+        $isOwner = $eintrag && $eintrag->createdBy == $user->UserID;
+        $isGs    = $user && property_exists($user, 'isGeschaeftsstelle') ? $user->isGeschaeftsstelle : false;
+
+        // Nur Owner oder Geschäftsstelle dürfen laden
+        if (!$eintrag || (!$isOwner && !$isGs)) {
             return response()->json(['message' => 'Nicht gefunden oder kein Zugriff'], 403);
         }
 
@@ -153,7 +156,12 @@ class StundeneintragController extends Controller
     {
         $eintrag = Stundeneintrag::find($id);
 
-        if (!$eintrag || $eintrag->createdBy != $request->user()->UserID) {
+        $user = $request->user();
+        $isOwner = $eintrag && $eintrag->createdBy == $user->UserID;
+        $isGs    = $user && property_exists($user, 'isGeschaeftsstelle') ? $user->isGeschaeftsstelle : false;
+
+        // Nur Owner oder Geschäftsstelle dürfen aktualisieren
+        if (!$eintrag || (!$isOwner && !$isGs)) {
             return response()->json(['message' => 'Kein Zugriff'], 403);
         }
 
@@ -164,7 +172,7 @@ class StundeneintragController extends Controller
             'ende'          => 'required|date_format:H:i|after:beginn',
             'kurs'          => 'nullable|string',
             'fk_abteilung'  => 'nullable|exists:abteilung_definition,AbteilungID',
-            'status_id'     => 'required|integer|in:10,11,12', // 2=Senden, 4=Entwurf
+            'status_id'     => 'required|integer|in:10,11,12',
         ]);
 
         $start = Carbon::createFromFormat('H:i', $validated['beginn']);

@@ -38,6 +38,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     {
         Route::get('/geschaeftsstelle/abrechnungen', [AbrechnungController::class, 'getAbrechnungenFuerGeschaeftsstelle']);
         Route::post('/geschaeftsstelle/abrechnungen/{id}/finalize', [AbrechnungController::class, 'finalize']);
+        Route::get('/geschaeftsstelle/abrechnungen-historie', [AbrechnungController::class, 'getAbrechnungenHistorieFuerGeschaeftsstelle']);
     });
     //Abteilungsleiter-Routen
     Route::group(['middleware' => ['al']], function ()
