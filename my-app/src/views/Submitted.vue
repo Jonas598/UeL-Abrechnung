@@ -1,4 +1,4 @@
-<!-- my-app/src/views/Drafts.vue -->
+<!-- my-app/src/views/UEL_Drafts.vue -->
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 

@@ -7,6 +7,7 @@ use App\Http\Controllers\AbteilungController;
 use App\Http\Controllers\StundeneintragController;
 use App\Http\Controllers\AbrechnungController;
 use App\Http\Controllers\AbteilungsleiterController;
+use App\Http\Controllers\GeschaeftsstelleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,13 +34,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/stundeneintrag/{id}', [StundeneintragController::class, 'show']);
     Route::put('/stundeneintrag/{id}', [StundeneintragController::class, 'update']);
     Route::post('/abrechnung/erstellen', [AbrechnungController::class, 'erstellen']);
-    Route::get('/abrechnung/summary', [AbrechnungController::class, 'getSummary']);
+    Route::get('/abrechnung/meine', [AbrechnungController::class, 'getMeineAbrechnungen']);
     //Geschäftsstelle-Routen
     Route::group(['middleware' => ['gs']], function ()
     {
-        Route::get('/geschaeftsstelle/abrechnungen', [AbrechnungController::class, 'getAbrechnungenFuerGeschaeftsstelle']);
-        Route::post('/geschaeftsstelle/abrechnungen/{id}/finalize', [AbrechnungController::class, 'finalize']);
-        Route::get('/geschaeftsstelle/abrechnungen-historie', [AbrechnungController::class, 'getAbrechnungenHistorieFuerGeschaeftsstelle']);
+        Route::get('/geschaeftsstelle/abrechnungen', [GeschaeftsstelleController::class, 'getAbrechnungenFuerGeschaeftsstelle']);
+        Route::post('/geschaeftsstelle/abrechnungen/{id}/finalize', [GeschaeftsstelleController::class, 'finalize']);
+        Route::get('/geschaeftsstelle/abrechnungen-historie', [GeschaeftsstelleController::class, 'getAbrechnungenHistorieFuerGeschaeftsstelle']);
     });
     //Abteilungsleiter-Routen
     Route::group(['middleware' => ['al']], function ()
