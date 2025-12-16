@@ -18,23 +18,20 @@ const API_URL = 'http://127.0.0.1:8000/api'
 
 // Prüft, ob der User IRGENDEINE Rolle "Abteilungsleiter" hat
 const isDepartmentHead = computed(() => {
-  return permissions.value.some(p => p.rolle === 'Abteilungsleiter') || user.value?.isAdmin
-})
+  return permissions.value.some(p => p.rolle === 'Abteilungsleiter');
+});
 
 // Prüft, ob der User IRGENDEINE Rolle "Übungsleiter" (oder "Uebungsleiter") hat
 const isTrainer = computed(() => {
-  return permissions.value.some(p => p.rolle === 'Uebungsleiter' || p.rolle === 'Übungsleiter') || user.value?.isAdmin
-})
+  return permissions.value.some(p => p.rolle === 'Uebungsleiter' || p.rolle === 'Übungsleiter');
+});
 
 // Admin Check
 const isAdmin = computed(() => user.value?.isAdmin === true)
 
-// Geschäftsstelle Check (aus dem User-Objekt oder Permissions, je nachdem wo es herkommt)
+// Geschäftsstelle Check (NUR wenn wirklich Geschäftsstelle, nicht automatisch für Admins)
 const isOfficeManager = computed(() => {
-  // Option A: Es kommt direkt als Boolean im User-Objekt (wie in deinem Backend-Controller definiert)
   if (user.value?.isGeschaeftsstelle) return true
-
-  // Option B: Fallback, falls es doch über Rollen kommt
   return permissions.value.some(p => p.rolle === 'Geschäftsstelle')
 })
 
@@ -173,7 +170,8 @@ const handleLogout = async () => {
         </template>
 
 
-        <template v-if="isOfficeManager || isAdmin">
+        <!-- WICHTIG: Hier KEIN automatisches || isAdmin mehr, nur echte Geschäftsstelle -->
+        <template v-if="isOfficeManager">
           <div class="section-title mt-6">Geschäftsstelle</div>
 
           <v-btn
@@ -203,8 +201,17 @@ const handleLogout = async () => {
             Abrechnungshistorie
           </v-btn>
 
-          <div></div>
+          <!-- NEU: User verwalten (Geschäftsstelle) -->
+          <v-btn
+              class="w-100"
+              color="primary"
+              prepend-icon="mdi-account-cog"
+              @click="router.push({ name: 'ChangeUser' })"
+          >
+            User verwalten
+          </v-btn>
         </template>
+
 
 
         <template v-if="isAdmin">
@@ -218,8 +225,18 @@ const handleLogout = async () => {
           >
             User erstellen
           </v-btn>
-          <div></div>
+
+          <!-- NEU: User verwalten (Admin) -->
+          <v-btn
+              class="w-100"
+              color="primary"
+              prepend-icon="mdi-account-cog"
+              :to="{ name: 'ChangeUser' }"
+          >
+            User verwalten
+          </v-btn>
         </template>
+
 
       </div>
     </v-card>

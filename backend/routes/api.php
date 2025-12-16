@@ -60,5 +60,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::group(['middleware' => ['admin']], function ()
     {
         Route::post('/create-user', [AuthController::class, 'createUser']);
+        Route::get('/admin/users', [AuthController::class, 'listUsers']);
+        Route::put('/admin/users/{id}/roles', [AuthController::class, 'updateUserRoles']);
     });
 });

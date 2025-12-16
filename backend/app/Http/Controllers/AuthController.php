@@ -129,6 +129,7 @@ class AuthController extends Controller
         // Fehlerfall (z.B. Token abgelaufen oder E-Mail falsch)
         return response()->json(['message' => __($status)], 400);
     }
+
     /**
      * Login und Token-Ausgabe
      */
@@ -203,5 +204,141 @@ class AuthController extends Controller
         return [
             'message' => 'Erfolgreich ausgeloggt'
         ];
+    }
+
+    /**
+     * Gibt alle Benutzer für Admins zurück (inkl. Rollen/Abteilungen)
+     */
+    public function listUsers(Request $request)
+    {
+        // Optional: Zusätzliche Sicherheitsprüfung, falls Middleware einmal fehlt
+        $user = $request->user();
+        if (!$user || !$user->isAdmin) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        // Alle User laden
+        $users = User::all();
+
+        // Zuweisungen für alle User in einem Rutsch laden, um N+1 zu vermeiden
+        $assignments = UserRolleAbteilung::with(['rolle', 'abteilung'])
+            ->whereIn('fk_userID', $users->pluck('UserID'))
+            ->get()
+            ->groupBy('fk_userID');
+
+        $result = $users->map(function (User $user) use ($assignments) {
+            $userAssignments = $assignments->get($user->UserID, collect());
+
+            $departmentHeadDepartments = [];
+            $trainerDepartments = [];
+
+            foreach ($userAssignments as $assignment) {
+                $roleName = $assignment->rolle->bezeichnung ?? null;
+                $dept = $assignment->abteilung;
+                if (!$roleName || !$dept) {
+                    continue;
+                }
+
+                $entry = [
+                    'id' => $dept->AbteilungID,
+                    'name' => $dept->name,
+                ];
+
+                if ($roleName === 'Abteilungsleiter') {
+                    $departmentHeadDepartments[] = $entry;
+                }
+
+                if ($roleName === 'Uebungsleiter' || $roleName === 'Übungsleiter') {
+                    $trainerDepartments[] = $entry;
+                }
+            }
+
+            return [
+                'id' => $user->UserID,
+                'name' => $user->name,
+                'vorname' => $user->vorname,
+                'email' => $user->email,
+                'isAdmin' => (bool) $user->isAdmin,
+                'isGeschaeftsstelle' => (bool) $user->isGeschaeftsstelle,
+                'departmentHeadDepartments' => $departmentHeadDepartments,
+                'trainerDepartments' => $trainerDepartments,
+            ];
+        })->values();
+
+        return response()->json([
+            'users' => $result,
+        ]);
+    }
+
+    /**
+     * Aktualisiert Rollen und Basisflags eines Users (Admin)
+     */
+    public function updateUserRoles(Request $request, $id)
+    {
+        $currentUser = $request->user();
+        if (!$currentUser || !$currentUser->isAdmin) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $validated = $request->validate([
+            'isAdmin' => 'sometimes|boolean',
+            'isGeschaeftsstelle' => 'sometimes|boolean',
+            'roles.departmentHead' => 'sometimes|array',
+            'roles.departmentHead.*' => 'integer|exists:abteilung_definition,AbteilungID',
+            'roles.trainer' => 'sometimes|array',
+            'roles.trainer.*' => 'integer|exists:abteilung_definition,AbteilungID',
+        ]);
+
+        // Rollen-Definitionen holen
+        $roleHead = RolleDefinition::where('bezeichnung', 'Abteilungsleiter')->first();
+        $roleTrainer = RolleDefinition::where('bezeichnung', 'Uebungsleiter')->first();
+
+        if (!$roleHead || !$roleTrainer) {
+            return response()->json([
+                'message' => 'Rollen-Definitionen (Abteilungsleiter/Uebungsleiter) fehlen in der DB!'
+            ], 500);
+        }
+
+        $user = User::findOrFail($id);
+
+        DB::transaction(function () use ($user, $validated, $roleHead, $roleTrainer) {
+            // Basisflags aktualisieren
+            if (array_key_exists('isAdmin', $validated)) {
+                $user->isAdmin = $validated['isAdmin'];
+            }
+            if (array_key_exists('isGeschaeftsstelle', $validated)) {
+                $user->isGeschaeftsstelle = $validated['isGeschaeftsstelle'];
+            }
+            $user->save();
+
+            // KEIN Token-Löschen mehr hier.
+
+            // Bestehende Abteilungsleiter-/Trainer-Zuweisungen entfernen
+            UserRolleAbteilung::where('fk_userID', $user->UserID)
+                ->whereIn('fk_rolleID', [$roleHead->RolleID, $roleTrainer->RolleID])
+                ->delete();
+
+            // Neue Abteilungsleiter-Zuweisungen
+            $departmentHeadIds = $validated['roles']['departmentHead'] ?? [];
+            foreach ($departmentHeadIds as $deptId) {
+                UserRolleAbteilung::create([
+                    'fk_userID' => $user->UserID,
+                    'fk_abteilungID' => $deptId,
+                    'fk_rolleID' => $roleHead->RolleID,
+                ]);
+            }
+
+            // Neue Übungsleiter-Zuweisungen
+            $trainerIds = $validated['roles']['trainer'] ?? [];
+            foreach ($trainerIds as $deptId) {
+                UserRolleAbteilung::create([
+                    'fk_userID' => $user->UserID,
+                    'fk_abteilungID' => $deptId,
+                    'fk_rolleID' => $roleTrainer->RolleID,
+                ]);
+            }
+        });
+
+        return response()->json(['message' => 'Benutzerrollen erfolgreich aktualisiert']);
     }
 }

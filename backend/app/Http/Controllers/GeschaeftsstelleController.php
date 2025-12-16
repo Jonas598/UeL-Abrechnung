@@ -105,38 +105,41 @@ class GeschaeftsstelleController extends Controller
      */
     public function getAbrechnungenHistorieFuerGeschaeftsstelle(Request $request)
     {
-        $year = (int) $request->query('year', \Carbon\Carbon::now()->year);
+        $year = (int) $request->query('year', Carbon::now()->year);
         $quarter = $request->query('quarter');
 
+        // Zeitraum je nach Quartal bestimmen
         if ($quarter === 'Q1') {
-            $start = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
-            $end   = \Carbon\Carbon::create($year, 3, 31)->endOfDay();
+            $start = Carbon::create($year, 1, 1)->startOfDay();
+            $end   = Carbon::create($year, 3, 31)->endOfDay();
         } elseif ($quarter === 'Q2') {
-            $start = \Carbon\Carbon::create($year, 4, 1)->startOfDay();
-            $end   = \Carbon\Carbon::create($year, 6, 30)->endOfDay();
+            $start = Carbon::create($year, 4, 1)->startOfDay();
+            $end   = Carbon::create($year, 6, 30)->endOfDay();
         } elseif ($quarter === 'Q3') {
-            $start = \Carbon\Carbon::create($year, 7, 1)->startOfDay();
-            $end   = \Carbon\Carbon::create($year, 9, 30)->endOfDay();
+            $start = Carbon::create($year, 7, 1)->startOfDay();
+            $end   = Carbon::create($year, 9, 30)->endOfDay();
         } elseif ($quarter === 'Q4') {
-            $start = \Carbon\Carbon::create($year, 10, 1)->startOfDay();
-            $end   = \Carbon\Carbon::create($year, 12, 31)->endOfDay();
+            $start = Carbon::create($year, 10, 1)->startOfDay();
+            $end   = Carbon::create($year, 12, 31)->endOfDay();
         } else {
-            $start = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
-            $end   = \Carbon\Carbon::create($year, 12, 31)->endOfDay();
+            $start = Carbon::create($year, 1, 1)->startOfDay();
+            $end   = Carbon::create($year, 12, 31)->endOfDay();
         }
 
+        // Abrechnungen über das verknüpfte Quartal filtern (beginn/ende)
         $abrechnungen = Abrechnung::with([
-            'creator',
-            'abteilung',
-            'stundeneintraege',
-            'statusLogs' => function ($q) { $q->orderBy('modifiedAt', 'desc'); },
-            'statusLogs.statusDefinition',
-        ])
-            ->where(function ($q) use ($start, $end) {
-                $q->whereBetween('zeitraumVon', [$start, $end])
-                    ->orWhereBetween('zeitraumBis', [$start, $end]);
+                'creator',
+                'abteilung',
+                'stundeneintraege',
+                'quartal',
+                'statusLogs' => function ($q) { $q->orderBy('modifiedAt', 'desc'); },
+                'statusLogs.statusDefinition',
+            ])
+            ->whereHas('quartal', function ($q) use ($start, $end) {
+                $q->whereBetween('beginn', [$start, $end])
+                  ->orWhereBetween('ende', [$start, $end]);
             })
-            ->orderBy('zeitraumVon', 'asc')
+            ->orderBy('AbrechnungID', 'asc')
             ->get();
 
         $result = $abrechnungen->map(function ($a) {
@@ -145,12 +148,17 @@ class GeschaeftsstelleController extends Controller
                 ? $latestLog->statusDefinition->name
                 : 'Unbekannt';
 
+            $zeitraumText = 'Unbekannt';
+            if ($a->quartal) {
+                $zeitraumText = $a->quartal->beginn->format('d.m.Y') . ' - ' . $a->quartal->ende->format('d.m.Y');
+            }
+
             return [
                 'AbrechnungID'    => $a->AbrechnungID,
                 'mitarbeiterName' => $a->creator->vorname . ' ' . $a->creator->name,
                 'abteilung'       => $a->abteilung->name ?? 'Unbekannt',
                 'stunden'         => round($a->stundeneintraege->sum('dauer'), 2),
-                'zeitraum'        => \Carbon\Carbon::parse($a->zeitraumVon)->format('d.m.Y') . ' - ' . \Carbon\Carbon::parse($a->zeitraumBis)->format('d.m.Y'),
+                'zeitraum'        => $zeitraumText,
                 'status'          => $statusName,
             ];
         })->values();
