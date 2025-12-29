@@ -124,23 +124,25 @@ const buildPayload = (userId: number): UpdateUserRolesPayload => {
   };
 };
 
-// Abteilungsleiter sollen nur eine einzige Abteilung haben
+// Abteilungsleiter sollen nur eine einzige Abteilung haben (letzter Klick gewinnt)
 const onDepartmentHeadChange = (userId: number, value: number[] | number) => {
   const state = editStates.value[userId];
   if (!state) return;
 
-  // Immer als Array behandeln und nur gültige Nummern übernehmen
-  const valuesArray: number[] = [];
+  // Vuetify liefert bei multiple i.d.R. ein Array; wir nehmen immer das zuletzt gewählte
+  let arrayValue: number[] = [];
   if (Array.isArray(value)) {
-    for (const v of value) {
-      if (typeof v === 'number') valuesArray.push(v);
-    }
+    arrayValue = value.filter((v): v is number => typeof v === 'number');
   } else if (typeof value === 'number') {
-    valuesArray.push(value);
+    arrayValue = [value];
   }
 
-  // Nur das erste ausgewählte Element erlauben
-  state.departmentHeadIds = valuesArray.length > 0 ? [valuesArray[0] as number] : [];
+  if (arrayValue.length === 0) {
+    state.departmentHeadIds = [];
+  } else {
+    const lastSelected = arrayValue[arrayValue.length - 1]!;
+    state.departmentHeadIds = [lastSelected];
+  }
 
   markDirty(userId);
 };
@@ -169,9 +171,9 @@ const filteredUsers = computed(() => {
     const last = u.name?.toLocaleLowerCase() ?? '';
     const mail = u.email?.toLocaleLowerCase() ?? '';
     return (
-      first.includes(term) ||
-      last.includes(term) ||
-      mail.includes(term)
+        first.includes(term) ||
+        last.includes(term) ||
+        mail.includes(term)
     );
   });
 });
@@ -244,13 +246,13 @@ const saveAllChanges = async () => {
           <!-- Suchleiste -->
           <div class="mb-4 search-bar">
             <v-text-field
-              v-model="searchTerm"
-              label="Benutzer suchen"
-              prepend-inner-icon="mdi-magnify"
-              density="comfortable"
-              variant="outlined"
-              clearable
-              hide-details
+                v-model="searchTerm"
+                label="Benutzer suchen"
+                prepend-inner-icon="mdi-magnify"
+                density="comfortable"
+                variant="outlined"
+                clearable
+                hide-details
             />
           </div>
 
@@ -269,8 +271,8 @@ const saveAllChanges = async () => {
               </thead>
               <tbody>
               <tr
-                v-for="user in filteredUsers"
-                :key="user.id"
+                  v-for="user in filteredUsers"
+                  :key="user.id"
               >
                 <td>{{ user.vorname }}</td>
                 <td>{{ user.name }}</td>
@@ -278,58 +280,61 @@ const saveAllChanges = async () => {
 
                 <td>
                   <v-select
-                    v-model="editStates[user.id]!.isAdmin"
-                    :items="[{ label: 'Ja', value: true }, { label: 'Nein', value: false }] as const"
-                    item-title="label"
-                    item-value="value"
-                    density="compact"
-                    hide-details
-                    class="role-select"
-                    @update:model-value="markDirty(user.id)"
+                      v-model="editStates[user.id]!.isAdmin"
+                      :items="[{ label: 'Ja', value: true }, { label: 'Nein', value: false }] as const"
+                      item-title="label"
+                      item-value="value"
+                      density="compact"
+                      hide-details
+                      class="role-select"
+                      @update:model-value="markDirty(user.id)"
                   />
                 </td>
 
                 <td>
                   <v-select
-                    v-model="editStates[user.id]!.isGeschaeftsstelle"
-                    :items="[{ label: 'Ja', value: true }, { label: 'Nein', value: false }] as const"
-                    item-title="label"
-                    item-value="value"
-                    density="compact"
-                    hide-details
-                    class="role-select"
-                    @update:model-value="markDirty(user.id)"
+                      v-model="editStates[user.id]!.isGeschaeftsstelle"
+                      :items="[{ label: 'Ja', value: true }, { label: 'Nein', value: false }] as const"
+                      item-title="label"
+                      item-value="value"
+                      density="compact"
+                      hide-details
+                      class="role-select"
+                      @update:model-value="markDirty(user.id)"
                   />
                 </td>
 
                 <td>
                   <v-select
-                    v-model="editStates[user.id]!.departmentHeadIds"
-                    :items="departments"
-                    item-title="name"
-                    item-value="id"
-                    chips
-                    density="compact"
-                    hide-details
-                    placeholder="Keine"
-                    class="dept-select"
-                    @update:model-value="onDepartmentHeadChange(user.id, $event)"
+                      v-model="editStates[user.id]!.departmentHeadIds"
+                      :items="departments"
+                      item-title="name"
+                      item-value="id"
+                      chips
+                      :closable-chips="false"
+                      multiple
+                      density="compact"
+                      hide-details
+                      placeholder="Keine"
+                      class="dept-select dept-select--single"
+                      @update:model-value="onDepartmentHeadChange(user.id, $event)"
                   />
                 </td>
 
                 <td>
                   <v-select
-                    v-model="editStates[user.id]!.trainerIds"
-                    :items="departments"
-                    item-title="name"
-                    item-value="id"
-                    chips
-                    multiple
-                    density="compact"
-                    hide-details
-                    placeholder="Keine"
-                    class="dept-select"
-                    @update:model-value="markDirty(user.id)"
+                      v-model="editStates[user.id]!.trainerIds"
+                      :items="departments"
+                      item-title="name"
+                      item-value="id"
+                      chips
+                      :closable-chips="false"
+                      multiple
+                      density="compact"
+                      hide-details
+                      placeholder="Keine"
+                      class="dept-select"
+                      @update:model-value="markDirty(user.id)"
                   />
                 </td>
               </tr>
@@ -344,9 +349,9 @@ const saveAllChanges = async () => {
 
           <div class="d-flex justify-end mt-4">
             <v-btn
-              color="primary"
-              :loading="globalSaving"
-              @click="saveAllChanges"
+                color="primary"
+                :loading="globalSaving"
+                @click="saveAllChanges"
             >
               Änderungen speichern
             </v-btn>
@@ -395,5 +400,22 @@ const saveAllChanges = async () => {
 
 .is-current-user {
   opacity: 0.6;
+}
+
+/* Mehr Platz für ausgewählte Chips (Text nicht sofort abschneiden) */
+.dept-select :deep(.v-field__input) {
+  min-width: 220px;
+}
+
+.dept-select :deep(.v-chip) {
+  max-width: 260px;
+}
+
+.dept-select :deep(.v-chip .v-chip__content) {
+  display: inline-block;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
