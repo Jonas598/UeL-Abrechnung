@@ -30,7 +30,12 @@ interface Submission {
   iban?: string
   gesamtBetrag?: number
 
-  // NEU: Differenzierte Genehmigungsdaten
+  // NEU: Adressdaten
+  strasse?: string
+  hausnr?: string
+  plz?: string
+  ort?: string
+
   datumGenehmigtAL: string
   genehmigtDurchAL: string
   datumFreigabeGS: string
@@ -85,7 +90,7 @@ async function markAsPaid(id: number) {
   }
 }
 
-// --- PDF Generierung (NEU MIT FREIGABE-INFOS) ---
+// --- PDF Generierung (MIT ADRESSE) ---
 function generatePDF(item: Submission) {
   const doc = new jsPDF()
 
@@ -93,26 +98,54 @@ function generatePDF(item: Submission) {
   doc.setFontSize(18)
   doc.text('Zahlungsanweisung', 14, 20)
 
-  // Block: Basisdaten
+  // Block: Personendaten & Adresse
   doc.setFontSize(11)
   doc.setTextColor(50)
 
   let yPos = 35;
-  const lineHeight = 7;
+  const lineHeight = 6;
 
-  doc.text(`Übungsleiter: ${item.mitarbeiterName}`, 14, yPos); yPos += lineHeight;
+  // Name (Fett)
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Übungsleiter: ${item.mitarbeiterName}`, 14, yPos);
+  yPos += lineHeight;
+  doc.setFont('helvetica', 'normal');
+
+  // Adresse (falls vorhanden)
+  if (item.strasse || item.ort) {
+    doc.setFontSize(10);
+    // Straße & Hausnummer
+    const strasse = item.strasse || '';
+    const hausnr = item.hausnr || '';
+    if(strasse) {
+      doc.text(`${strasse} ${hausnr}`, 14, yPos);
+      yPos += 5;
+    }
+    // PLZ & Ort
+    const plz = item.plz || '';
+    const ort = item.ort || '';
+    if(ort) {
+      doc.text(`${plz} ${ort}`, 14, yPos);
+      yPos += 8; // Etwas mehr Abstand nach der Adresse
+    }
+    doc.setFontSize(11); // Schriftgröße zurücksetzen
+  } else {
+    yPos += 4; // Kleiner Abstand wenn keine Adresse da ist
+  }
+
+  // Abteilungs-Daten
   doc.text(`Abteilung: ${item.abteilung}`, 14, yPos); yPos += lineHeight;
-  doc.text(`Zeitraum: ${item.zeitraum}`, 14, yPos); yPos += lineHeight + 4; // Bissel Abstand
+  doc.text(`Zeitraum: ${item.zeitraum}`, 14, yPos); yPos += lineHeight + 4;
 
-  // Block: Freigaben (Neu)
+  // Block: Freigaben
   doc.setFontSize(10)
-  doc.setTextColor(80) // Etwas grauer
-  doc.text(`Genehmigt (Abteilungsleiter): ${item.datumGenehmigtAL} durch ${item.genehmigtDurchAL}`, 14, yPos); yPos += lineHeight;
+  doc.setTextColor(80)
+  doc.text(`Genehmigt (Abteilungsleiter): ${item.datumGenehmigtAL} durch ${item.genehmigtDurchAL}`, 14, yPos); yPos += 5;
   doc.text(`Freigabe (Geschäftsstelle): ${item.datumFreigabeGS} durch ${item.freigabeDurchGS}`, 14, yPos); yPos += lineHeight + 4;
 
   // Block: Zahlungsinfos
   doc.setFontSize(12)
-  doc.setTextColor(0) // Schwarz zurück
+  doc.setTextColor(0)
   doc.setFont('helvetica', 'bold')
   doc.text(`IBAN: ${item.iban || 'Nicht hinterlegt'}`, 14, yPos); yPos += lineHeight;
 
@@ -139,7 +172,7 @@ function generatePDF(item: Submission) {
     columnStyles: { 3: { halign: 'right' } }
   })
 
-  // Footer: Beleg ID
+  // Footer
   const finalY = (doc as any).lastAutoTable.finalY || 150
   doc.setFontSize(9)
   doc.setTextColor(150)

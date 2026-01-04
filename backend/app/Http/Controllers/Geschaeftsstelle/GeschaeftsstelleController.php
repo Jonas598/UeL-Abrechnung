@@ -686,6 +686,10 @@ class GeschaeftsstelleController extends Controller
                 'datumFreigabeGS'  => $gsDatum,
                 'freigabeDurchGS'  => $gsName,
                 // -------------------
+                'strasse' => $stammdaten ? $stammdaten->strasse : '',
+                'hausnr'  => $stammdaten ? $stammdaten->hausnr : '',
+                'plz'     => $stammdaten ? $stammdaten->plz : '',
+                'ort'     => $stammdaten ? $stammdaten->ort : '',
 
                 'details'          => $mappedDetails
             ];
