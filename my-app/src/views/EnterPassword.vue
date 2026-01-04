@@ -41,7 +41,7 @@ async function submitPassword() {
   try {
     // 2. Login-Anfrage direkt an Laravel senden
     // Passe die URL an, falls dein Server woanders läuft
-    const response = await axios.post('http://127.0.0.1:8000/api/login', {
+    const response = await axios.post(import.meta.env.VITE_API_URL + '/api/login', {
       email: email.value,
       password: password.value
     })
