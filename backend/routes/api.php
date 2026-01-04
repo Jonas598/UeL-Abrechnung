@@ -57,6 +57,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         Route::post('/geschaeftsstelle/stundensatz', [StundensatzController::class, 'updateStundensatz']);
         Route::get('/geschaeftsstelle/stundensatz-historie', [GeschaeftsstelleController::class, 'getStundensatzHistorie']);
         Route::get('/geschaeftsstelle/auszahlungen', [GeschaeftsstelleController::class, 'getAuszahlungen']);
+        Route::post('/geschaeftsstelle/abrechnungen/finalize-bulk', [App\Http\Controllers\Geschaeftsstelle\GeschaeftsstelleController::class, 'finalizeBulk']);
     });
     //Abteilungsleiter-Routen
     Route::group(['middleware' => ['al']], function ()

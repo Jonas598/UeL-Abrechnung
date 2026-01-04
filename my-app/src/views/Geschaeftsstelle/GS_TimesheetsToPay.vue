@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import jsPDF from 'jspdf'
@@ -14,6 +14,8 @@ function goBack() {
 const API_BASE = 'http://127.0.0.1:8000/api/geschaeftsstelle'
 const API_URL = `${API_BASE}/auszahlungen`
 
+// --- INTERFACES ---
+
 interface TimesheetEntry {
   datum: string
   dauer: number
@@ -24,33 +26,84 @@ interface TimesheetEntry {
 interface Submission {
   AbrechnungID: number
   mitarbeiterName: string
+  mitarbeiterID: number
   abteilung: string
   zeitraum: string
   stunden: number
   iban?: string
   gesamtBetrag?: number
-
-  // NEU: Adressdaten
+  // Adressdaten
   strasse?: string
   hausnr?: string
   plz?: string
   ort?: string
-
+  // Freigabe Infos
   datumGenehmigtAL: string
   genehmigtDurchAL: string
   datumFreigabeGS: string
   freigabeDurchGS: string
-
   details: TimesheetEntry[]
 }
 
+interface GroupedSubmission {
+  mitarbeiterID: number
+  mitarbeiterName: string
+  iban: string
+  strasse: string
+  hausnr: string
+  plz: string
+  ort: string
+  totalBetrag: number
+  totalStunden: number
+  items: Submission[]
+}
+
+// --- STATE ---
+
 const isLoading = ref<boolean>(false)
 const errorMessage = ref<string | null>(null)
-const submissions = ref<Submission[]>([])
-const isProcessingId = ref<number | null>(null)
-const expandedIds = ref<number[]>([])
+const rawSubmissions = ref<Submission[]>([])
+const isProcessingGroup = ref<number | null>(null)
+const isProcessingId = ref<number | null>(null) // Für Einzel-Button
+const expandedGroupIds = ref<number[]>([])
 
-// --- Helper ---
+// --- COMPUTED ---
+
+const groupedSubmissions = computed(() => {
+  const groups: Record<string, GroupedSubmission> = {}
+
+  rawSubmissions.value.forEach(sub => {
+    const mId = sub.mitarbeiterID ? sub.mitarbeiterID : 0
+
+    if (!groups[mId]) {
+      groups[mId] = {
+        mitarbeiterID: mId,
+        mitarbeiterName: sub.mitarbeiterName,
+        iban: sub.iban || '',
+        strasse: sub.strasse || '',
+        hausnr: sub.hausnr || '',
+        plz: sub.plz || '',
+        ort: sub.ort || '',
+        totalBetrag: 0,
+        totalStunden: 0,
+        items: []
+      }
+    }
+
+    groups[mId].items.push(sub)
+
+    const betrag = sub.gesamtBetrag ? Number(sub.gesamtBetrag) : 0
+    const stunden = sub.stunden ? Number(sub.stunden) : 0
+
+    groups[mId].totalBetrag += betrag
+    groups[mId].totalStunden += stunden
+  })
+
+  return Object.values(groups)
+})
+
+// --- HELPER ---
+
 function formatCurrency(val: number | undefined | null) {
   if (val === undefined || val === null) return '-'
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(val)
@@ -60,15 +113,16 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-// --- Laden ---
+// --- API ---
+
 async function fetchSubmissions() {
   isLoading.value = true
   errorMessage.value = null
-  expandedIds.value = []
+  expandedGroupIds.value = []
 
   try {
     const response = await axios.get<Submission[]>(API_URL)
-    submissions.value = response.data
+    rawSubmissions.value = response.data
   } catch (error: any) {
     errorMessage.value = error?.response?.data?.message || 'Fehler beim Laden der Auszahlungen.'
   } finally {
@@ -76,114 +130,116 @@ async function fetchSubmissions() {
   }
 }
 
-// --- Bezahlen ---
-async function markAsPaid(id: number) {
-  if (!confirm('Wurde die Überweisung getätigt? Die Abrechnung wird archiviert (Status 23).')) return
-  isProcessingId.value = id
+// --- PDF ACTIONS ---
+
+function generateSinglePDF(item: Submission) {
+  const doc = new jsPDF()
+  doc.setFontSize(18); doc.text('Zahlungsanweisung', 14, 20)
+  doc.setFontSize(11); doc.setTextColor(50); let yPos = 35;
+  doc.setFont('helvetica', 'bold'); doc.text(`Übungsleiter: ${item.mitarbeiterName}`, 14, yPos); yPos += 6;
+  doc.setFont('helvetica', 'normal');
+
+  if (item.ort) {
+    doc.setFontSize(10);
+    doc.text(`${item.strasse || ''} ${item.hausnr || ''}`, 14, yPos); yPos += 5;
+    doc.text(`${item.plz || ''} ${item.ort || ''}`, 14, yPos); yPos += 8;
+    doc.setFontSize(11);
+  } else { yPos += 4; }
+
+  doc.text(`Abteilung: ${item.abteilung}`, 14, yPos); yPos += 6;
+  doc.text(`Zeitraum: ${item.zeitraum}`, 14, yPos); yPos += 8;
+
+  doc.setFontSize(10); doc.setTextColor(80);
+  doc.text(`Genehmigt (Abteilungsleiter): ${item.datumGenehmigtAL} (${item.genehmigtDurchAL})`, 14, yPos); yPos += 5;
+  doc.text(`Freigabe (Geschäftsstelle): ${item.datumFreigabeGS} (${item.freigabeDurchGS})`, 14, yPos); yPos += 8;
+
+  doc.setFontSize(12); doc.setTextColor(0); doc.setFont('helvetica', 'bold');
+  doc.text(`IBAN: ${item.iban || 'Nicht hinterlegt'}`, 14, yPos); yPos += 6;
+  doc.text(`Betrag: ${formatCurrency(item.gesamtBetrag)}`, 14, yPos); yPos += 10;
+  doc.setFont('helvetica', 'normal');
+
+  const tableData = item.details.map(d => [formatDate(d.datum), d.kurs || '-', d.dauer.toLocaleString('de-DE') + ' Std.', d.betrag ? formatCurrency(d.betrag) : '-'])
+  autoTable(doc, { startY: yPos, head: [['Datum', 'Kurs', 'Dauer', 'Betrag']], body: tableData, theme: 'grid', columnStyles: { 3: { halign: 'right' } } })
+
+  const finalY = (doc as any).lastAutoTable.finalY || 150
+  doc.setFontSize(9); doc.setTextColor(150);
+  doc.text(`Beleg-ID: #${item.AbrechnungID} | Erstellt: ${new Date().toLocaleDateString('de-DE')}`, 14, finalY + 10)
+  doc.save(`Abrechnung_${item.mitarbeiterName}_${item.zeitraum}.pdf`)
+}
+
+function generateGroupPDF(group: GroupedSubmission) {
+  const doc = new jsPDF()
+  doc.setFontSize(18); doc.text('Sammel-Zahlungsanweisung', 14, 20)
+  doc.setFontSize(11); doc.setTextColor(50); let yPos = 35;
+  doc.setFont('helvetica', 'bold'); doc.text(`Empfänger: ${group.mitarbeiterName}`, 14, yPos); yPos += 6;
+  doc.setFont('helvetica', 'normal');
+
+  if (group.ort) {
+    doc.setFontSize(10);
+    doc.text(`${group.strasse} ${group.hausnr}`, 14, yPos); yPos += 5;
+    doc.text(`${group.plz} ${group.ort}`, 14, yPos); yPos += 8;
+    doc.setFontSize(11);
+  } else { yPos += 4; }
+
+  doc.setFont('helvetica', 'bold'); doc.text(`IBAN: ${group.iban || 'Nicht hinterlegt'}`, 14, yPos); yPos += 7;
+  doc.setFontSize(14); doc.setTextColor(0); doc.text(`Gesamtsumme: ${formatCurrency(group.totalBetrag)}`, 14, yPos);
+  doc.setFontSize(11); doc.setTextColor(50); doc.setFont('helvetica', 'normal'); yPos += 10;
+
+  const tableRows: any[] = []
+  group.items.forEach(sub => {
+    sub.details.forEach(d => {
+      tableRows.push([formatDate(d.datum), `${sub.abteilung}: ${d.kurs || '-'}`, d.dauer.toLocaleString('de-DE') + ' Std.', d.betrag ? formatCurrency(Number(d.betrag)) : '-'])
+    })
+  })
+  tableRows.sort((a, b) => { const dateA = a[0].split('.').reverse().join('-'); const dateB = b[0].split('.').reverse().join('-'); return dateA.localeCompare(dateB); })
+
+  autoTable(doc, { startY: yPos, head: [['Datum', 'Abteilung / Info', 'Dauer', 'Betrag']], body: tableRows, theme: 'grid', columnStyles: { 3: { halign: 'right' } } })
+  const finalY = (doc as any).lastAutoTable.finalY || 150
+  const idList = group.items.map(i => '#' + i.AbrechnungID).join(', ');
+  doc.setFontSize(9); doc.setTextColor(150);
+  doc.text(`Enthält Abrechnungen: ${idList}`, 14, finalY + 10); doc.text(`Erstellt: ${new Date().toLocaleDateString('de-DE')}`, 14, finalY + 15)
+  doc.save(`Sammel_Auszahlung_${group.mitarbeiterName.replace(/\s/g, '_')}.pdf`)
+}
+
+// --- PAY ACTIONS ---
+
+// 1. Alles bezahlen (Gruppe)
+async function payGroup(group: GroupedSubmission) {
+  const ids = group.items.map(i => i.AbrechnungID)
+  if (!confirm(`Alles für ${group.mitarbeiterName} (${formatCurrency(group.totalBetrag)}) bezahlen?`)) return
+  isProcessingGroup.value = group.mitarbeiterID
   try {
-    await axios.post(`${API_BASE}/abrechnungen/${id}/finalize`)
-    submissions.value = submissions.value.filter(s => s.AbrechnungID !== id)
+    await axios.post(`${API_BASE}/abrechnungen/finalize-bulk`, { ids: ids })
+    rawSubmissions.value = rawSubmissions.value.filter(s => !ids.includes(s.AbrechnungID))
   } catch (error: any) {
-    alert('Fehler: ' + (error.response?.data?.message || 'Konnte nicht verarbeitet werden.'))
+    alert('Fehler: ' + (error.response?.data?.message || 'Fehler'))
+  } finally {
+    isProcessingGroup.value = null
+  }
+}
+
+// 2. Einzeln bezahlen (NEU)
+async function paySingle(item: Submission) {
+  if (!confirm(`Abrechnung #${item.AbrechnungID} (${formatCurrency(item.gesamtBetrag)}) als bezahlt markieren?`)) return
+  isProcessingId.value = item.AbrechnungID
+  try {
+    // Wir nutzen hier wieder die Single-Route
+    await axios.post(`${API_BASE}/abrechnungen/${item.AbrechnungID}/finalize`)
+    // Aus der Liste entfernen -> Vue Computed Property aktualisiert die Gruppe automatisch
+    rawSubmissions.value = rawSubmissions.value.filter(s => s.AbrechnungID !== item.AbrechnungID)
+  } catch (error: any) {
+    alert('Fehler: ' + (error.response?.data?.message || 'Fehler'))
   } finally {
     isProcessingId.value = null
   }
 }
 
-// --- PDF Generierung (MIT ADRESSE) ---
-function generatePDF(item: Submission) {
-  const doc = new jsPDF()
-
-  // Titel
-  doc.setFontSize(18)
-  doc.text('Zahlungsanweisung', 14, 20)
-
-  // Block: Personendaten & Adresse
-  doc.setFontSize(11)
-  doc.setTextColor(50)
-
-  let yPos = 35;
-  const lineHeight = 6;
-
-  // Name (Fett)
-  doc.setFont('helvetica', 'bold');
-  doc.text(`Übungsleiter: ${item.mitarbeiterName}`, 14, yPos);
-  yPos += lineHeight;
-  doc.setFont('helvetica', 'normal');
-
-  // Adresse (falls vorhanden)
-  if (item.strasse || item.ort) {
-    doc.setFontSize(10);
-    // Straße & Hausnummer
-    const strasse = item.strasse || '';
-    const hausnr = item.hausnr || '';
-    if(strasse) {
-      doc.text(`${strasse} ${hausnr}`, 14, yPos);
-      yPos += 5;
-    }
-    // PLZ & Ort
-    const plz = item.plz || '';
-    const ort = item.ort || '';
-    if(ort) {
-      doc.text(`${plz} ${ort}`, 14, yPos);
-      yPos += 8; // Etwas mehr Abstand nach der Adresse
-    }
-    doc.setFontSize(11); // Schriftgröße zurücksetzen
+function toggleGroup(mId: number) {
+  if (expandedGroupIds.value.includes(mId)) {
+    expandedGroupIds.value = expandedGroupIds.value.filter(id => id !== mId)
   } else {
-    yPos += 4; // Kleiner Abstand wenn keine Adresse da ist
+    expandedGroupIds.value.push(mId)
   }
-
-  // Abteilungs-Daten
-  doc.text(`Abteilung: ${item.abteilung}`, 14, yPos); yPos += lineHeight;
-  doc.text(`Zeitraum: ${item.zeitraum}`, 14, yPos); yPos += lineHeight + 4;
-
-  // Block: Freigaben
-  doc.setFontSize(10)
-  doc.setTextColor(80)
-  doc.text(`Genehmigt (Abteilungsleiter): ${item.datumGenehmigtAL} durch ${item.genehmigtDurchAL}`, 14, yPos); yPos += 5;
-  doc.text(`Freigabe (Geschäftsstelle): ${item.datumFreigabeGS} durch ${item.freigabeDurchGS}`, 14, yPos); yPos += lineHeight + 4;
-
-  // Block: Zahlungsinfos
-  doc.setFontSize(12)
-  doc.setTextColor(0)
-  doc.setFont('helvetica', 'bold')
-  doc.text(`IBAN: ${item.iban || 'Nicht hinterlegt'}`, 14, yPos); yPos += lineHeight;
-
-  const betragText = item.gesamtBetrag
-      ? item.gesamtBetrag.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })
-      : '0,00 €';
-  doc.text(`Auszahlungsbetrag: ${betragText}`, 14, yPos); yPos += lineHeight + 4;
-  doc.setFont('helvetica', 'normal')
-
-  // Tabelle
-  const tableData = item.details.map(d => [
-    formatDate(d.datum),
-    d.kurs || '-',
-    d.dauer.toLocaleString('de-DE') + ' Std.',
-    d.betrag ? d.betrag.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) : '-'
-  ])
-
-  autoTable(doc, {
-    startY: yPos,
-    head: [['Datum', 'Kurs', 'Dauer', 'Betrag']],
-    body: tableData,
-    theme: 'grid',
-    headStyles: { fillColor: [41, 128, 185] },
-    columnStyles: { 3: { halign: 'right' } }
-  })
-
-  // Footer
-  const finalY = (doc as any).lastAutoTable.finalY || 150
-  doc.setFontSize(9)
-  doc.setTextColor(150)
-  doc.text(`Beleg-ID: #${item.AbrechnungID} | Erstellt am: ${new Date().toLocaleDateString('de-DE')}`, 14, finalY + 10)
-
-  doc.save(`Auszahlung_${item.mitarbeiterName.replace(/\s/g, '_')}_${item.zeitraum}.pdf`)
-}
-
-function toggleDetails(id: number) {
-  if (expandedIds.value.includes(id)) expandedIds.value = expandedIds.value.filter(x => x !== id)
-  else expandedIds.value.push(id)
 }
 
 onMounted(() => {
@@ -204,7 +260,10 @@ onMounted(() => {
         <div>
           <h3 class="ma-0">Offene Auszahlungen</h3>
           <div class="text-caption text-medium-emphasis">
-            Status: Genehmigt (22) &rarr; Warten auf Überweisung
+            Hier erscheinen alle Abrechnungen, die den Freigabeprozess durchlaufen haben, aber noch
+            nicht ausgezahlt wurden.
+            <br>Die Abrechnungen werden nach Mitarbeiter gruppiert und können je
+            nach Wunsch einzeln oder zusammen <br>ausgezahlt werden.
           </div>
         </div>
         <v-btn size="small" variant="text" color="primary" :loading="isLoading" @click="fetchSubmissions">
@@ -222,61 +281,116 @@ onMounted(() => {
           {{ errorMessage }}
         </v-alert>
 
-        <div v-else-if="submissions.length > 0" class="list">
-          <div v-for="item in submissions" :key="item.AbrechnungID" class="submission-wrapper">
+        <div v-else-if="groupedSubmissions.length > 0" class="d-flex flex-column gap-3">
 
-            <div class="submission-row" @click="toggleDetails(item.AbrechnungID)">
-              <div class="submission-main">
-                <div class="d-flex justify-space-between mb-1">
-                  <span class="text-h6 font-weight-bold text-primary">{{ item.mitarbeiterName }}</span>
-                  <v-chip size="small" color="orange-darken-1" variant="flat">Zahlung offen</v-chip>
-                </div>
+          <div
+              v-for="group in groupedSubmissions"
+              :key="group.mitarbeiterID"
+              class="group-card"
+          >
+            <div class="group-header pa-4 d-flex flex-wrap align-center justify-space-between" @click="toggleGroup(group.mitarbeiterID)">
 
-                <div class="d-flex flex-wrap gap-4 info-grid">
-                  <div class="line"><span class="label">Abt:</span> <span class="value">{{ item.abteilung }}</span></div>
-                  <div class="line"><span class="label">Zeit:</span> <span class="value">{{ item.zeitraum }}</span></div>
-                  <div class="line w-100 mt-1 pt-1 border-top" v-if="item.iban">
-                    <span class="label">IBAN:</span> <span class="value font-monospace">{{ item.iban }}</span>
-                  </div>
-                  <div class="line mt-1">
-                    <span class="label">Gesamt:</span>
-                    <span class="value font-weight-bold text-h6 text-success">{{ formatCurrency(item.gesamtBetrag) }}</span>
+              <div class="d-flex align-center">
+                <v-avatar color="primary" variant="tonal" class="mr-3">
+                  <span class="text-h6">{{ group.mitarbeiterName.charAt(0) }}</span>
+                </v-avatar>
+                <div>
+                  <div class="text-h6 font-weight-bold">{{ group.mitarbeiterName }}</div>
+                  <div class="text-caption text-medium-emphasis d-flex align-center">
+                    <v-icon icon="mdi-file-document-multiple-outline" size="x-small" class="mr-1"></v-icon>
+                    {{ group.items.length }} Abrechnung(en) offen
                   </div>
                 </div>
               </div>
 
-              <div class="submission-actions">
-                <v-btn icon="mdi-file-pdf-box" color="red-darken-1" variant="text" size="large" @click.stop="generatePDF(item)" title="PDF mit Freigabe-Info"></v-btn>
-                <v-btn color="success" variant="elevated" prepend-icon="mdi-bank-transfer" :loading="isProcessingId === item.AbrechnungID" @click.stop="markAsPaid(item.AbrechnungID)">
-                  Bezahlt
-                </v-btn>
-                <v-icon :icon="expandedIds.includes(item.AbrechnungID) ? 'mdi-chevron-up' : 'mdi-chevron-down'" class="ml-2 text-medium-emphasis" />
+              <div class="d-flex align-center mt-2 mt-sm-0 gap-4">
+                <div class="text-right mr-4">
+                  <div class="text-caption text-medium-emphasis">Gesamtsumme</div>
+                  <div class="text-h6 text-success font-weight-bold">{{ formatCurrency(group.totalBetrag) }}</div>
+                </div>
+
+                <div class="d-flex gap-2">
+                  <v-btn
+                      icon="mdi-file-pdf-box"
+                      color="blue-grey"
+                      variant="text"
+                      title="Sammel-PDF erstellen"
+                      @click.stop="generateGroupPDF(group)"
+                  ></v-btn>
+
+                  <v-btn
+                      color="success"
+                      variant="elevated"
+                      prepend-icon="mdi-check-all"
+                      :loading="isProcessingGroup === group.mitarbeiterID"
+                      @click.stop="payGroup(group)"
+                  >
+                    Alles Bezahlen
+                  </v-btn>
+
+                  <v-icon :icon="expandedGroupIds.includes(group.mitarbeiterID) ? 'mdi-chevron-up' : 'mdi-chevron-down'"></v-icon>
+                </div>
               </div>
             </div>
 
             <v-expand-transition>
-              <div v-if="expandedIds.includes(item.AbrechnungID)" class="details-container">
-                <v-table density="compact" class="bg-transparent">
-                  <thead>
-                  <tr>
-                    <th class="text-left">Datum</th>
-                    <th class="text-left">Info</th>
-                    <th class="text-right">Dauer</th>
-                    <th class="text-right">Betrag</th>
-                  </tr>
-                  </thead>
-                  <tbody>
-                  <tr v-for="(d, i) in item.details" :key="i">
-                    <td>{{ formatDate(d.datum) }}</td>
-                    <td>{{ d.kurs || '-' }}</td>
-                    <td class="text-right">{{ d.dauer.toLocaleString('de-DE') }} Std.</td>
-                    <td class="text-right font-weight-medium text-green-darken-2">{{ formatCurrency(d.betrag) }}</td>
-                  </tr>
-                  </tbody>
-                </v-table>
+              <div v-if="expandedGroupIds.includes(group.mitarbeiterID)" class="bg-grey-lighten-5 pa-2 border-top">
+                <div class="text-caption text-medium-emphasis mb-2 ml-2">Enthaltene Einzelabrechnungen:</div>
+
+                <v-card
+                    v-for="sub in group.items"
+                    :key="sub.AbrechnungID"
+                    variant="outlined"
+                    class="mb-2 bg-white"
+                >
+                  <v-card-text class="py-2 d-flex justify-space-between align-center">
+                    <div>
+                      <div class="font-weight-bold d-flex align-center">
+                        {{ sub.abteilung }}
+                      </div>
+                      <div class="text-caption">{{ sub.zeitraum }} (ID: #{{ sub.AbrechnungID }})</div>
+                    </div>
+
+                    <div class="d-flex align-center gap-2">
+                      <div class="text-right mr-2">
+                        <div class="font-weight-medium">{{ formatCurrency(sub.gesamtBetrag) }}</div>
+                        <div class="text-caption">{{ sub.stunden }} Std.</div>
+                      </div>
+
+                      <v-btn
+                          icon="mdi-file-pdf-box"
+                          size="small"
+                          variant="text"
+                          color="red-darken-1"
+                          title="Einzelbeleg drucken"
+                          @click="generateSinglePDF(sub)"
+                      ></v-btn>
+
+                      <v-btn
+                          icon="mdi-check"
+                          size="small"
+                          variant="tonal"
+                          color="success"
+                          title="Nur diese Abrechnung bezahlen"
+                          :loading="isProcessingId === sub.AbrechnungID"
+                          @click="paySingle(sub)"
+                      ></v-btn>
+                    </div>
+                  </v-card-text>
+                </v-card>
+
+                <div class="px-3 pb-2 pt-1" v-if="group.iban">
+                  <span class="text-caption font-weight-bold">IBAN für Überweisung: </span>
+                  <span class="text-caption font-monospace">{{ group.iban }}</span>
+                </div>
+                <div class="px-3 pb-2 pt-1 text-red text-caption" v-else>
+                  <v-icon icon="mdi-alert-circle" size="x-small"></v-icon> Warnung: Keine IBAN hinterlegt.
+                </div>
+
               </div>
             </v-expand-transition>
           </div>
+
         </div>
 
         <div v-else class="placeholder">
@@ -292,16 +406,21 @@ onMounted(() => {
 .page { padding: 24px; max-width: 900px; margin: 0 auto; }
 .border-t-lg-green { border-top: 4px solid #43A047; }
 .placeholder { min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.02); border-radius: 8px; margin-top: 8px; }
-.list { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
-.submission-wrapper { background: white; border: 1px solid rgba(0,0,0,0.12); border-radius: 8px; overflow: hidden; }
-.submission-row { padding: 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-.submission-row:hover { background-color: #f9f9f9; }
-.submission-main { flex: 1; }
-.info-grid { display: flex; flex-wrap: wrap; column-gap: 24px; row-gap: 4px; }
-.line { display: flex; gap: 8px; font-size: 0.9rem; align-items: center; }
-.border-top { border-top: 1px dashed rgba(0,0,0,0.1); }
-.label { color: rgba(0,0,0,0.6); font-weight: 500; }
-.font-monospace { font-family: monospace; letter-spacing: 0.5px; }
-.submission-actions { display: flex; align-items: center; margin-left: 16px; gap: 8px; }
-.details-container { background-color: #fafafa; border-top: 1px solid rgba(0,0,0,0.06); padding: 16px; }
+
+.group-card {
+  background: white;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.group-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.group-header { cursor: pointer; }
+.gap-4 { gap: 16px; }
+.gap-3 { gap: 12px; }
+.gap-2 { gap: 8px; }
+.border-top { border-top: 1px solid rgba(0,0,0,0.08); }
+.font-monospace { font-family: monospace; }
 </style>

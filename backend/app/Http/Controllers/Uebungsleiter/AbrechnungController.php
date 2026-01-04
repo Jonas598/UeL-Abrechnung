@@ -17,11 +17,13 @@ use Illuminate\Support\Facades\DB;
 class AbrechnungController extends Controller
 {
     /**
-     * Erstellt eine neue Abrechnung aus ausgewählten Stundeneinträgen.
+     * Erstellt Abrechnungen aus ausgewählten Stundeneinträgen.
+     * Erstellt PRO ABTEILUNG eine eigene Abrechnung.
+     * Prüft vorher auf vorhandene Stammdaten.
      */
     public function erstellen(Request $request)
     {
-        // 1. Validierung
+        // 1. Validierung der IDs
         $validated = $request->validate([
             'stundeneintrag_ids' => 'required|array|min:1',
             'stundeneintrag_ids.*' => 'integer|exists:stundeneintrag,EintragID',
@@ -29,6 +31,21 @@ class AbrechnungController extends Controller
 
         $userId = Auth::id();
         $ids = $validated['stundeneintrag_ids'];
+
+        // --- NEU: Schritt A - Stammdaten prüfen ---
+        // Wir prüfen, ob ein gültiger Stammdaten-Eintrag existiert (IBAN ist Pflicht)
+        $stammdaten = DB::table('user_stammdaten')
+            ->where('fk_userID', $userId)
+            ->whereNull('gueltigBis') // Nur aktuell gültige
+            ->orderBy('gueltigVon', 'desc')
+            ->first();
+
+        if (!$stammdaten || empty($stammdaten->iban)) {
+            return response()->json([
+                'message' => 'Bitte hinterlege zuerst deine Bankverbindung (IBAN) und Adresse in den Stammdaten, bevor du eine Abrechnung einreichst.'
+            ], 422); // 422 Unprocessable Entity
+        }
+        // ------------------------------------------
 
         // 2. Einträge laden
         $eintraege = Stundeneintrag::whereIn('EintragID', $ids)
@@ -42,12 +59,10 @@ class AbrechnungController extends Controller
             ], 422);
         }
 
-        // 3. Quartal ermitteln
-        // Wir nehmen das Datum des ersten Eintrags, um das Quartal zu finden.
+        // 3. Quartal ermitteln (Global für alle Einträge)
         $minDatum = $eintraege->min('datum');
         $maxDatum = $eintraege->max('datum');
 
-        // Suche das Quartal in der DB, das dieses Datum abdeckt
         $quartal = Quartal::where('beginn', '<=', $minDatum)
             ->where('ende', '>=', $minDatum)
             ->first();
@@ -58,60 +73,63 @@ class AbrechnungController extends Controller
             ], 422);
         }
 
-        // Optional: Sicherheitscheck - Liegen alle Einträge im selben Quartal?
+        // Sicherheitscheck: Alle Einträge müssen im selben Quartal liegen
         if ($maxDatum > $quartal->ende) {
             return response()->json([
-                'message' => 'Die ausgewählten Einträge erstrecken sich über mehrere Quartale. Bitte nur Einträge eines Quartals wählen.'
+                'message' => 'Die ausgewählten Einträge erstrecken sich über mehrere Quartale. Bitte wähle nur Einträge eines Quartals aus.'
             ], 422);
         }
 
-        $abteilungId = $eintraege->first()->fk_abteilung;
+        // --- NEU: Schritt B - Nach Abteilung gruppieren ---
+        // Collection wird nach Abteilungs-ID gruppiert
+        $eintraegeProAbteilung = $eintraege->groupBy('fk_abteilung');
 
-        // IDs für Status (Annahme)
-        $statusIdNeu = 20;
-        $statusIdEintragInAbrechnung = 11;
+        $statusIdNeu = 20; // Eingereicht
+        $statusIdEintragInAbrechnung = 11; // In Abrechnung
 
         try {
-            DB::transaction(function () use ($eintraege, $quartal, $abteilungId, $userId, $statusIdNeu, $statusIdEintragInAbrechnung) {
+            DB::transaction(function () use ($eintraegeProAbteilung, $quartal, $userId, $statusIdNeu, $statusIdEintragInAbrechnung) {
 
-                // A. Abrechnung erstellen (Jetzt mit fk_quartal statt Datum)
-                $abrechnung = Abrechnung::create([
-                    'fk_quartal'   => $quartal->ID, // <--- HIER GEÄNDERT
-                    'fk_abteilung' => $abteilungId,
-                    'createdBy'    => $userId,
-                ]);
+                // Wir iterieren durch jede Abteilungsgruppe
+                foreach ($eintraegeProAbteilung as $abteilungId => $abteilungEintraege) {
 
-                // B. Abrechnung Log schreiben
-                // (Falls du keine Observer nutzt, bleibt das hier drin)
-                AbrechnungStatusLog::create([
-                    'fk_abrechnungID' => $abrechnung->AbrechnungID,
-                    'fk_statusID'     => $statusIdNeu,
-                    'modifiedBy'      => $userId,
-                    'modifiedAt'      => now(),
-                    'kommentar'       => 'Abrechnung für ' . $quartal->bezeichnung . ' erstellt.'
-                ]);
-
-                // C. Stundeneinträge aktualisieren
-                foreach ($eintraege as $eintrag) {
-                    $eintrag->update([
-                        'fk_abrechnungID' => $abrechnung->AbrechnungID
+                    // A. Abrechnung erstellen für diese Abteilung
+                    $abrechnung = Abrechnung::create([
+                        'fk_quartal'   => $quartal->ID,
+                        'fk_abteilung' => $abteilungId,
+                        'createdBy'    => $userId,
                     ]);
 
-                    // Hinweis: Wenn du im Stundeneintrag Model den 'updated' Observer hast,
-                    // wird das Log eventuell doppelt geschrieben. Wenn nicht, lass es hier stehen.
-                    StundeneintragStatusLog::create([
-                        'fk_stundeneintragID' => $eintrag->EintragID,
-                        'fk_statusID'         => $statusIdEintragInAbrechnung,
-                        'modifiedBy'          => $userId,
-                        'modifiedAt'          => now(),
-                        'kommentar'           => 'In Abrechnung #' . $abrechnung->AbrechnungID . ' aufgenommen.',
+                    // B. Abrechnung Log schreiben
+                    AbrechnungStatusLog::create([
+                        'fk_abrechnungID' => $abrechnung->AbrechnungID,
+                        'fk_statusID'     => $statusIdNeu,
+                        'modifiedBy'      => $userId,
+                        'modifiedAt'      => now(),
+                        'kommentar'       => 'Abrechnung für ' . $quartal->bezeichnung . ' erstellt (Automatisch getrennt nach Abteilung).',
                     ]);
+
+                    // C. Stundeneinträge dieser Gruppe aktualisieren
+                    foreach ($abteilungEintraege as $eintrag) {
+                        $eintrag->update([
+                            'fk_abrechnungID' => $abrechnung->AbrechnungID
+                        ]);
+
+                        StundeneintragStatusLog::create([
+                            'fk_stundeneintragID' => $eintrag->EintragID,
+                            'fk_statusID'         => $statusIdEintragInAbrechnung,
+                            'modifiedBy'          => $userId,
+                            'modifiedAt'          => now(),
+                            'kommentar'           => 'In Abrechnung #' . $abrechnung->AbrechnungID . ' aufgenommen.',
+                        ]);
+                    }
                 }
             });
 
             return response()->json([
-                'message' => 'Abrechnung erfolgreich erstellt.',
+                'message' => 'Abrechnung(en) erfolgreich erstellt.',
                 'quartal' => $quartal->bezeichnung,
+                'anzahl_abrechnungen' => $eintraegeProAbteilung->count(),
                 'anzahl_eintraege' => $eintraege->count(),
             ], 201);
 

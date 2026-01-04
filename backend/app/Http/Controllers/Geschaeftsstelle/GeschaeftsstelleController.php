@@ -274,6 +274,50 @@ class GeschaeftsstelleController extends Controller
             return response()->json(['message' => 'Datenbankfehler beim Speichern.', 'error' => $e->getMessage()], 500);
         }
     }
+    /**
+     * POST /api/geschaeftsstelle/abrechnungen/finalize-bulk
+     * Markiert mehrere Abrechnungen gleichzeitig als bezahlt (Status 23).
+     */
+    public function finalizeBulk(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer|exists:abrechnung,AbrechnungID'
+        ]);
+
+        $userId = Auth::id();
+        $ids = $validated['ids'];
+        $count = 0;
+
+        try {
+            DB::transaction(function () use ($ids, $userId, &$count) {
+                foreach ($ids as $id) {
+                    $abrechnung = Abrechnung::find($id);
+
+                    // Aktuellen Status prüfen
+                    $currentLog = $abrechnung->statusLogs()->orderBy('modifiedAt', 'desc')->first();
+                    $currentStatus = $currentLog ? $currentLog->fk_statusID : 0;
+
+                    // Nur wenn Status 22 (Wartet auf Zahlung), schalten wir auf 23
+                    if ($currentStatus == 22) {
+                        \App\Models\AbrechnungStatusLog::create([
+                            'fk_abrechnungID' => $id,
+                            'fk_statusID'     => 23, // Bezahlt
+                            'modifiedBy'      => $userId,
+                            'modifiedAt'      => now(),
+                            'kommentar'       => 'Sammel-Auszahlung getätigt / Vorgang abgeschlossen'
+                        ]);
+                        $count++;
+                    }
+                }
+            });
+
+            return response()->json(['message' => "$count Abrechnungen wurden als bezahlt markiert."]);
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Fehler bei der Verarbeitung.', 'error' => $e->getMessage()], 500);
+        }
+    }
 
     /**
      * 1. HINZUFÜGEN
@@ -679,6 +723,7 @@ class GeschaeftsstelleController extends Controller
                 'gesamtBetrag'     => $mappedDetails->sum('betrag'),
                 'iban'             => $iban,
                 'zeitraum'         => $a->quartal ? $a->quartal->bezeichnung : '-',
+                'mitarbeiterID'    => $a->creator->UserID,
 
                 // --- NEUE FELDER ---
                 'datumGenehmigtAL' => $alDatum,

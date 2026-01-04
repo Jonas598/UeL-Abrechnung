@@ -1,6 +1,16 @@
-<!-- UeL-Abrechnung/my-app/src/views/Uebungsleiter/UEL_UploadLicense.vue -->
 <template>
   <div class="page">
+    <div class="d-flex justify-start mb-4">
+      <v-btn
+          color="primary"
+          variant="tonal"
+          prepend-icon="mdi-arrow-left"
+          @click="goBack"
+      >
+        Zurück zum Dashboard
+      </v-btn>
+    </div>
+
     <v-card elevation="6" class="pa-4">
       <v-card-title class="pa-0 mb-4">
         <h3 class="ma-0">Lizenzdaten angeben</h3>
@@ -60,7 +70,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 // import axios from 'axios'
+
+const router = useRouter()
+
+function goBack() {
+  router.push({ name: 'Dashboard' })
+}
 
 const lizenznummer = ref('')
 const lizenzName = ref('')
@@ -87,6 +104,9 @@ async function saveLicence() {
     // Backend-Team trägt hier den finalen Endpoint ein.
     // await axios.post(API_URL_PLACEHOLDER, payload)
     console.log('Lizenzdaten speichern (Platzhalter):', API_URL_PLACEHOLDER, payload)
+
+    // Optional: Nach Speichern zurück zum Dashboard?
+    // goBack()
   } catch (error) {
     console.error('Fehler beim Speichern (Platzhalter):', error)
   } finally {

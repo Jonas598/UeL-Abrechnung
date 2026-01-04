@@ -7,6 +7,11 @@ import axios from 'axios';
 
 const router = useRouter();
 
+// --- Navigation ---
+function goBack() {
+  router.push({ name: 'Dashboard' });
+}
+
 const users = ref<UserDto[]>([]);
 const isLoading = ref(false);
 const error = ref<string | null>(null);
@@ -209,6 +214,17 @@ const saveAllChanges = async () => {
 
 <template>
   <div class="page">
+    <div class="d-flex justify-start mb-4">
+      <v-btn
+          color="primary"
+          variant="tonal"
+          prepend-icon="mdi-arrow-left"
+          @click="goBack"
+      >
+        Zurück zum Dashboard
+      </v-btn>
+    </div>
+
     <div class="d-flex justify-space-between align-center mb-4">
       <div>
         <h2>Benutzer verwalten</h2>
@@ -243,7 +259,6 @@ const saveAllChanges = async () => {
         </div>
 
         <div v-else>
-          <!-- Suchleiste -->
           <div class="mb-4 search-bar">
             <v-text-field
                 v-model="searchTerm"
