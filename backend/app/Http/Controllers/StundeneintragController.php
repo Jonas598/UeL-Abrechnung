@@ -52,7 +52,7 @@ class StundeneintragController extends Controller
                     'createdAt'       => now(),
                 ]);
 
-
+                /*
                 StundeneintragStatusLog::create([
                     'fk_stundeneintragID' => $eintrag->EintragID, // Die ID vom gerade erstellten Eintrag
                     'fk_statusID'         => $validated['status_id'],
@@ -60,6 +60,7 @@ class StundeneintragController extends Controller
                     'modifiedAt'          => now(),
                     'kommentar'           => 'Stundeneintrag erstellt',
                 ]);
+                */
             });
 
         } catch (\Exception $e) {
