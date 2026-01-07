@@ -24,14 +24,14 @@ return new class extends Migration
         });
 
 
-        Schema::create('stundensatz', function (Blueprint $table) {
+        /*Schema::create('stundensatz', function (Blueprint $table) {
             $table->id('StundensatzID');
             $table->foreignId('fk_userID')->constrained('user', 'UserID')->onDelete('cascade');
             $table->double('satz');
             $table->date('gueltigVon');
             $table->date('gueltigBis')->nullable();
             $table->timestamps();
-        });
+        });*/
 
 
         /*Schema::create('lizenzen_definition', function (Blueprint $table) {
@@ -43,17 +43,17 @@ return new class extends Migration
 
 
 
-        Schema::create('user_lizenzen', function (Blueprint $table) {
+        /*Schema::create('user_lizenzen', function (Blueprint $table) {
             $table->id('ID');
             $table->integer('nummer');
+            $table->string('name');
             $table->date('gueltigVon');
             $table->date('gueltigBis')->nullable();
             $table->string('datei')->nullable();
 
             $table->foreignId('fk_userID')->constrained('user', 'UserID')->onDelete('cascade');
-            $table->foreignId('fk_lizenzID')->constrained('lizenzen_definition', 'LizenzID')->onDelete('cascade');
             $table->timestamps();
-        });
+        });*/
 
 
 
@@ -93,9 +93,9 @@ return new class extends Migration
         Schema::dropIfExists('user_rolle_abteilung');
         Schema::dropIfExists('rolle_definition');
         Schema::dropIfExists('abteilung_definition');
-        Schema::dropIfExists('user_lizenzen');
-        Schema::dropIfExists('lizenzen_definition');
-        Schema::dropIfExists('stundensatz');
+        //Schema::dropIfExists('user_lizenzen');
+        //Schema::dropIfExists('lizenzen_definition');
+        //Schema::dropIfExists('stundensatz');
         Schema::dropIfExists('user');
     }
 };

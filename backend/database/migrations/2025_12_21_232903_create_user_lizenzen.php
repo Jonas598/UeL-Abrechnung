@@ -13,6 +13,7 @@ return new class extends Migration
             $table->id('ID');
 
             $table->integer('nummer');
+            $table->string('name');
             $table->date('gueltigVon');
             $table->date('gueltigBis')->nullable();
 
