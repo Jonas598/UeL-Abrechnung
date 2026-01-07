@@ -60,6 +60,7 @@ class StundeneintragController extends Controller
                     'modifiedAt'          => now(),
                     'kommentar'           => 'Stundeneintrag erstellt',
                 ]);
+
             });
 
         } catch (\Exception $e) {

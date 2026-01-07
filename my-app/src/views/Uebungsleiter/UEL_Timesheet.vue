@@ -48,7 +48,7 @@ async function fetchUserDepartments() {
 async function loadEntry(id: string) {
   isLoading.value = true
   try {
-    const response = await axios.get(`http://127.0.0.1:8000/api/stundeneintrag/${id}`)
+    const response = await axios.get(import.meta.env.VITE_API_URL + '/api/stundeneintrag/${id}')
     const data = response.data
 
     entryId.value = id
