@@ -11,7 +11,7 @@ function goBack() {
   router.push({ name: 'Dashboard' })
 }
 
-const API_BASE = 'http://127.0.0.1:8000/api/geschaeftsstelle'
+const API_BASE = import.meta.env.VITE_API_URL + '/api/geschaeftsstelle'
 const API_URL = `${API_BASE}/auszahlungen`
 
 // --- INTERFACES ---

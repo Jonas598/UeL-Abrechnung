@@ -57,7 +57,7 @@ async function fetchDrafts() {
   selectedIds.value = []
 
   try {
-    const response = await axios.get('http://127.0.0.1:8000/api/entwuerfe')
+    const response = await axios.get(import.meta.env.VITE_API_URL + '/api/entwuerfe')
     drafts.value = response.data
   } catch (error) {
     console.error('Fehler beim Laden der Entwürfe', error)
@@ -99,7 +99,7 @@ async function deleteDraft(id: number) {
   if (!confirm("Möchtest du diesen Entwurf wirklich unwiderruflich löschen?")) return;
 
   try {
-    await axios.delete(`http://127.0.0.1:8000/api/stundeneintrag/${id}`);
+    await axios.delete(import.meta.env.VITE_API_URL + `/api/stundeneintrag/${id}`);
 
     // UI Update
     drafts.value = drafts.value.filter(draft => draft.EintragID !== id);

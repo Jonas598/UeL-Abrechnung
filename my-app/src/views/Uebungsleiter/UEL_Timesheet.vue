@@ -106,7 +106,7 @@ async function deleteEntry() {
 
   isLoading.value = true
   try {
-    await axios.delete(`http://127.0.0.1:8000/api/stundeneintrag/${entryId.value}`)
+    await axios.delete(import.meta.env.VITE_API_URL + `/api/stundeneintrag/${entryId.value}`)
     router.push({ name: 'Drafts' })
   } catch (error: any) {
     alert("Fehler beim Löschen: " + (error.response?.data?.message || 'Unbekannt'))

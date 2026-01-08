@@ -19,7 +19,7 @@ function goBack() {
   router.push({ name: 'Dashboard' })
 }
 
-const API_BASE = 'http://127.0.0.1:8000/api'
+const API_BASE = import.meta.env.VITE_API_URL+ '/api'
 const API_URL = `${API_BASE}/abteilungsleiter/abrechnungen`
 
 // --- TYPES ---

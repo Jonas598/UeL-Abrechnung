@@ -10,7 +10,7 @@ function goBack() {
 }
 
 // WICHTIG: Hier auf den AL-Endpunkt zeigen
-const API_URL = 'http://127.0.0.1:8000/api/abteilungsleiter/abrechnungen-historie'
+const API_URL = import.meta.env.VITE_API_URL + '/api/abteilungsleiter/abrechnungen-historie'
 
 // --- Interfaces ---
 interface HistoryEntry {

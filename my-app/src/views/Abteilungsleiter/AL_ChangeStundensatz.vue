@@ -51,11 +51,11 @@ const newRate = ref<number | string>('')
 const validFrom = ref<string>('')
 
 // --- API Endpoints ---
-const API_DEPARTMENTS = 'http://127.0.0.1:8000/api/meine-al-abteilungen'
-const API_USERS = 'http://127.0.0.1:8000/api/abteilungsleiter/mitarbeiter'
-const API_UPDATE_RATE = 'http://127.0.0.1:8000/api/abteilungsleiter/stundensatz'
+const API_DEPARTMENTS = import.meta.env.VITE_API_URL + '/api/meine-al-abteilungen'
+const API_USERS = import.meta.env.VITE_API_URL + '/api/abteilungsleiter/mitarbeiter'
+const API_UPDATE_RATE = import.meta.env.VITE_API_URL + '/api/abteilungsleiter/stundensatz'
 // NEU: Endpoint für Historie (Beispiel)
-const API_HISTORY = 'http://127.0.0.1:8000/api/abteilungsleiter/stundensatz-historie'
+const API_HISTORY = import.meta.env.VITE_API_URL + '/api/abteilungsleiter/stundensatz-historie'
 
 // --- Initialisierung ---
 onMounted(async () => {

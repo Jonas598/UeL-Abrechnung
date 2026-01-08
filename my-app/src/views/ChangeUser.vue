@@ -56,7 +56,7 @@ const loadCurrentUser = async () => {
       return;
     }
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    const response = await axios.get('http://127.0.0.1:8000/api/dashboard');
+    const response = await axios.get(import.meta.env.VITE_API_URL + '/api/dashboard');
     currentUserId.value = response.data.user?.id ?? null;
   } catch (e) {
     console.error('Fehler beim Laden des aktuellen Benutzers:', e);
@@ -66,7 +66,7 @@ const loadCurrentUser = async () => {
 
 const loadDepartments = async () => {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/api/abteilungen');
+    const response = await axios.get(import.meta.env.VITE_API_URL + '/api/abteilungen');
     departments.value = response.data as DepartmentDto[];
   } catch (e) {
     console.error('Konnte Abteilungen nicht laden. Ist das Backend gestartet?', e);

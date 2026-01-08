@@ -28,7 +28,7 @@ const router = useRouter()
 
 async function fetchDepartments() {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/api/abteilungen')
+    const response = await axios.get(import.meta.env.VITE_API_URL + '/api/abteilungen')
     departments.value = response.data
   } catch (error) {
     console.error('Konnte Abteilungen nicht laden. Ist das Backend gestartet?', error)
@@ -76,7 +76,7 @@ async function onSubmit() {
   }
 
   try {
-    const response = await axios.post('http://127.0.0.1:8000/api/create-user', payload)
+    const response = await axios.post(import.meta.env.VITE_API_URL + '/api/create-user', payload)
 
     console.log('Erfolg:', response.data)
     alert(`Benutzer ${firstName.value} erfolgreich angelegt!`)

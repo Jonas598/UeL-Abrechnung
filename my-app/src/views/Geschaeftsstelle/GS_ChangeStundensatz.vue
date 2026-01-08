@@ -51,9 +51,9 @@ const newRate = ref<number | string>('')
 const validFrom = ref<string>('')
 
 // --- API Endpoints ---
-const API_ALL_USERS = 'http://127.0.0.1:8000/api/geschaeftsstelle/mitarbeiter'
-const API_UPDATE_RATE = 'http://127.0.0.1:8000/api/geschaeftsstelle/stundensatz'
-const API_HISTORY = 'http://127.0.0.1:8000/api/geschaeftsstelle/stundensatz-historie' // <--- NEU
+const API_ALL_USERS = import.meta.env.VITE_API_URL + '/api/geschaeftsstelle/mitarbeiter'
+const API_UPDATE_RATE = import.meta.env.VITE_API_URL + '/api/geschaeftsstelle/stundensatz'
+const API_HISTORY = import.meta.env.VITE_API_URL + '/api/geschaeftsstelle/stundensatz-historie' // <--- NEU
 
 // --- Initialisierung ---
 onMounted(async () => {

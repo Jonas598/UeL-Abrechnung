@@ -47,7 +47,7 @@ async function onSubmit() {
 
   try {
     // Anfrage an Laravel senden
-    await axios.post('http://127.0.0.1:8000/api/set-password', {
+    await axios.post(import.meta.env.VITE_API_URL + '/api/set-password', {
       token: token.value,
       email: email.value,
       password: password.value,
