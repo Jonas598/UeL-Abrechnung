@@ -36,10 +36,9 @@ class UserInviteMail extends Mailable
      */
     public function content(): Content
     {
-        // Deine Frontend-URL (Achte auf den Port!)
-        $frontendUrl = 'http://localhost:5173/set-password';
+        $frontendBase = rtrim((string) config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173')), '/');
+        $frontendUrl = $frontendBase . '/set-password';
 
-        // Wir nutzen http_build_query für sicheres Zusammenbauen der Parameter
         $queryParams = http_build_query([
             'token' => $this->token,
             'email' => $this->user->email,
@@ -49,6 +48,7 @@ class UserInviteMail extends Mailable
             view: 'emails.invite', // Verweist auf resources/views/emails/invite.blade.php
             with: [
                 'link' => $frontendUrl . '?' . $queryParams,
+                'user' => $this->user,
             ]
         );
     }

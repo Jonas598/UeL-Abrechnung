@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
@@ -32,6 +31,15 @@ return [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
+        ],
+    ],
+
+    'brevo' => [
+        'api_key' => env('BREVO_API_KEY'),
+        'verify_ssl' => env('BREVO_VERIFY_SSL', true),
+        'from' => [
+            'email' => env('BREVO_FROM_EMAIL', env('MAIL_FROM_ADDRESS')),
+            'name' => env('BREVO_FROM_NAME', env('MAIL_FROM_NAME')),
         ],
     ],
 
