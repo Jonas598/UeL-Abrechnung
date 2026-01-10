@@ -89,8 +89,8 @@ class AuthController extends Controller
 
             return response([
                 'message' => 'Benutzer erfolgreich angelegt und Invite-Token generiert',
-                'user_id' => $user->UserID,
-                'invite_token' => $token // Zum Debuggen zurückgeben (in Prod nur per Mail!)
+                'user_id' => $user->UserID
+                //'invite_token' => $token // Zum Debuggen zurückgeben (in Prod nur per Mail!)
             ], 201);
         });
     }
