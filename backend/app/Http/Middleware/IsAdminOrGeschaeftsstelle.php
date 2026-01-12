@@ -17,7 +17,7 @@ class IsAdminOrGeschaeftsstelle
     {
         $user = $request->user();
 
-        // Prüfe auf Admin ODER Geschäftsstelle
+        // Prüfe auf Administrator ODER Geschäftsstelle
         if ($user && ($user->isAdmin || $user->isGeschaeftsstelle)) {
             return $next($request);
         }

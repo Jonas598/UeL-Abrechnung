@@ -8,7 +8,7 @@ use App\Http\Controllers\Geschaeftsstelle\GeschaeftsstelleController;
 use App\Http\Controllers\StundeneintragController;
 use App\Http\Controllers\Uebungsleiter\AbrechnungController;
 use App\Http\Controllers\Uebungsleiter\StammdatenController;
-use App\Http\Controllers\AdminZuschlagController;
+use App\Http\Controllers\Uebungsleiter\LizenzController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -42,7 +42,10 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('/uebungsleiter/profil', [StammdatenController::class, 'getProfile']);
     Route::post('/uebungsleiter/profil', [StammdatenController::class, 'updateProfile']);
     Route::get('/uebungsleiter/meine-saetze', [App\Http\Controllers\Uebungsleiter\AbrechnungController::class, 'getMeineSaetze']);
-    //Admin ODER GS-Routen
+    Route::get('/uebungsleiter/lizenzen', [LizenzController::class, 'getLizenzen']);
+    Route::post('/uebungsleiter/lizenzen', [LizenzController::class, 'saveLizenz']);
+    Route::delete('/uebungsleiter/lizenzen/{id}', [LizenzController::class, 'deleteLizenz']);
+    //Administrator ODER GS-Routen
     Route::group(['middleware' => ['admin_or_gs']], function () {
         Route::get('/admin/users', [AuthController::class, 'listUsers']);
         Route::put('/admin/users/{id}/roles', [AuthController::class, 'updateUserRoles']);
@@ -78,7 +81,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         Route::get('/abteilungsleiter/stundensatz-historie', [StundensatzController::class, 'getStundensatzHistorie']);
         Route::get('/abteilungsleiter/abrechnungen-historie', [App\Http\Controllers\Abteilungsleiter\AbteilungsleiterController::class, 'getAbrechnungenHistorie']);
     });
-    //Admin-Routen
+    //Administrator-Routen
     Route::group(['middleware' => ['admin']], function ()
     {
         Route::post('/create-user', [AuthController::class, 'createUser']);
@@ -86,13 +89,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
         Route::post('/admin/abteilungen', [App\Http\Controllers\AbteilungController::class, 'store']);
         Route::delete('/admin/abteilungen/{id}', [App\Http\Controllers\AbteilungController::class, 'destroy']);
         Route::put('/admin/abteilungen/{id}', [\App\Http\Controllers\AbteilungController::class, 'update']);
-        Route::get('/admin/zuschlaege', [\App\Http\Controllers\AdminZuschlagController::class, 'index']);
-        Route::post('/admin/zuschlaege', [\App\Http\Controllers\AdminZuschlagController::class, 'store']);
-        Route::put('/admin/zuschlaege/{id}', [\App\Http\Controllers\AdminZuschlagController::class, 'update']);
-        Route::delete('/admin/zuschlaege/{id}', [\App\Http\Controllers\AdminZuschlagController::class, 'destroy']);
-        Route::get('/admin/limits', [\App\Http\Controllers\AdminLimitController::class, 'index']);
-        Route::post('/admin/limits', [\App\Http\Controllers\AdminLimitController::class, 'store']);
-        Route::put('/admin/limits/{id}', [\App\Http\Controllers\AdminLimitController::class, 'update']);
-        Route::delete('/admin/limits/{id}', [\App\Http\Controllers\AdminLimitController::class, 'destroy']);
+        Route::get('/admin/zuschlaege', [\App\Http\Controllers\Administrator\AdminZuschlagController::class, 'index']);
+        Route::post('/admin/zuschlaege', [\App\Http\Controllers\Administrator\AdminZuschlagController::class, 'store']);
+        Route::put('/admin/zuschlaege/{id}', [\App\Http\Controllers\Administrator\AdminZuschlagController::class, 'update']);
+        Route::delete('/admin/zuschlaege/{id}', [\App\Http\Controllers\Administrator\AdminZuschlagController::class, 'destroy']);
+        Route::get('/admin/limits', [\App\Http\Controllers\Administrator\AdminLimitController::class, 'index']);
+        Route::post('/admin/limits', [\App\Http\Controllers\Administrator\AdminLimitController::class, 'store']);
+        Route::put('/admin/limits/{id}', [\App\Http\Controllers\Administrator\AdminLimitController::class, 'update']);
+        Route::delete('/admin/limits/{id}', [\App\Http\Controllers\Administrator\AdminLimitController::class, 'destroy']);
     });
 });

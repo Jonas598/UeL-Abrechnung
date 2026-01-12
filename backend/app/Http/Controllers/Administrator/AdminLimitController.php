@@ -1,10 +1,12 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Administrator;
 
 use App\Http\Controllers\Controller;
-use App\Models\Limit; // WICHTIG: Model importieren
+use App\Models\Limit;
 use Illuminate\Http\Request;
+
+// WICHTIG: Model importieren
 
 class AdminLimitController extends Controller
 {

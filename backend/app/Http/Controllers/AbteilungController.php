@@ -75,7 +75,7 @@ class AbteilungController extends Controller
 
     /**
      * GET /api/admin/abteilungen
-     * Listet alle Abteilungen für die Admin-Tabelle auf.
+     * Listet alle Abteilungen für die Administrator-Tabelle auf.
      */
     public function index()
     {

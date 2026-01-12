@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Administrator;
 
+use App\Http\Controllers\Controller;
 use App\Models\Zuschlag;
 use Illuminate\Http\Request;
 

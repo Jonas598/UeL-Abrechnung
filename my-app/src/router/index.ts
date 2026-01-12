@@ -8,7 +8,7 @@ import Dashboard from '../views/Dashboard.vue'
 import EnterPassword from '../views/EnterPassword.vue'
 import SetPassword from '../views/SetPassword.vue'
 import NoPassword from '../views/NoPassword.vue'
-import CreateUser from '../views/Admin/CreateUser.vue'
+import CreateUser from '../views/Administrator/CreateUser.vue'
 import UelTimesheet from '../views/Uebungsleiter/UEL_Timesheet.vue'
 import Submitted from '../views/Submitted.vue'
 import UelDrafts from '../views/Uebungsleiter/UEL_Drafts.vue'
@@ -24,9 +24,9 @@ import UelUploadLicense from "../views/Uebungsleiter/UEL_UploadLicense.vue"
 import AL_ChangeStundensatz from '../views/Abteilungsleiter/AL_ChangeStundensatz.vue'
 import GS_ChangeStundensatz from '../views/Geschaeftsstelle/GS_ChangeStundensatz.vue'
 import UelStundensatzUebersicht from '../views/Uebungsleiter/UEL_StundensatzUebersicht.vue'
-import AdminDepartments from "../views/Admin/AdminDepartments.vue"
-import AdminZuschlag from "../views/Admin/AdminZuschlag.vue"
-import AdminLimits from "../views/Admin/AdminLimits.vue";
+import AdminDepartments from "../views/Administrator/AdminDepartments.vue"
+import AdminZuschlag from "../views/Administrator/AdminZuschlag.vue"
+import AdminLimits from "../views/Administrator/AdminLimits.vue";
 
 const API_URL = import.meta.env.VITE_API_URL + '/api'
 
