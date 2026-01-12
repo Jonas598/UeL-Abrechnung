@@ -69,7 +69,7 @@ class StundensatzController extends Controller
             'user_id'      => 'required|integer|exists:user,UserID',
             'abteilung_id' => 'required|integer|exists:abteilung_definition,AbteilungID', // <--- NEU & WICHTIG
             'satz'         => 'required|numeric|min:0',
-            'gueltig_ab'   => 'required|date|after:today',
+            'gueltig_ab'   => 'required|date',
         ]);
 
         $userId      = $validated['user_id'];
