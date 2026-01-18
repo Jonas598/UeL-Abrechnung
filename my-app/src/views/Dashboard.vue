@@ -338,6 +338,15 @@ function formatCurrency(val: number) {
           >
             Übungsleiterpauschale verwalten
           </v-btn>
+          <v-btn
+              class="w-100"
+              color="secondary"
+              variant="tonal"
+              prepend-icon="mdi-cash-lock"
+              @click="router.push({ name: 'GSBudgets' })"
+          >
+            Übungsleiterpauschale Ausschöpfung
+          </v-btn>
         </template>
 
 
@@ -378,16 +387,6 @@ function formatCurrency(val: number) {
               @click="router.push({ name: 'AdminZuschlag' })"
           >
             Zuschläge verwalten
-          </v-btn>
-
-          <v-btn
-              class="w-100"
-              color="secondary"
-              variant="tonal"
-              prepend-icon="mdi-cash-lock"
-              @click="router.push({ name: 'AdminLimits' })"
-          >
-            Übungsleiterpauschale verwalten
           </v-btn>
         </template>
 

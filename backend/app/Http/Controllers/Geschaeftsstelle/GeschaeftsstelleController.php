@@ -779,4 +779,106 @@ class GeschaeftsstelleController extends Controller
 
         return response()->json($result);
     }
+    /**
+     * [GET] Budget-Übersicht aller Übungsleiter für das aktuelle Jahr
+     * Zeigt, wie viel von der Ehrenamtspauschale (Limit) bereits verbraucht wurde.
+     */
+    public function getJahresBudgets(Request $request)
+    {
+        $year = (int) $request->query('year', now()->year);
+
+        // 1. Limit laden
+        //$limitObj = \App\Models\Limit::where('jahr', $year)->first();
+        $limitObj = \App\Models\Limit::where('gueltigVon', '<=', now())
+            ->where(function ($query) {
+                $query->whereNull('gueltigBis')
+                    ->orWhere('gueltigBis', '>=', now());
+            })
+            ->orderBy('gueltigVon', 'desc')
+            ->first();
+        $limitWert = $limitObj ? (float)$limitObj->wert : 3000.00;
+
+        // 2. Alle relevanten User laden (die Übungsleiter sind)
+        // Wir holen die User-IDs aus der Verknüpfungstabelle
+        $ulIds = \App\Models\UserRolleAbteilung::whereHas('rolle', function($q) {
+            $q->where('bezeichnung', 'Uebungsleiter');
+        })
+            ->pluck('fk_userID')
+            ->unique();
+
+        $users = \App\Models\User::whereIn('UserID', $ulIds)
+            ->orderBy('name')
+            ->get();
+
+        // 3. PERFORMANCE: Alle Daten für das Jahr vorab laden (Eager Loading)
+        // Anstatt 100x die DB zu fragen, holen wir alles einmal.
+
+        // Alle Einträge des Jahres
+        $allEntries = \App\Models\Stundeneintrag::whereYear('datum', $year)->get()->groupBy('createdBy');
+
+        // Alle Stundensätze
+        $allRates = \App\Models\Stundensatz::all()->groupBy('fk_userID');
+
+        // Alle Zuschläge
+        $alleZuschlaege = \App\Models\Zuschlag::orderBy('gueltigVon')->get();
+
+        // Yasumi
+        $provider = null;
+        try {
+            if (class_exists(\Yasumi\Yasumi::class)) {
+                $provider = \Yasumi\Yasumi::create('Germany/NorthRhineWestphalia', $year);
+            }
+        } catch (\Exception $e) {}
+
+        // 4. Berechnung für jeden User
+        $result = $users->map(function($user) use ($limitWert, $allEntries, $allRates, $alleZuschlaege, $provider) {
+
+            // Einträge dieses Users aus der Collection holen
+            $userEntries = $allEntries->get($user->UserID, collect([]));
+            $userRates = $allRates->get($user->UserID, collect([]));
+
+            $usedAmount = 0;
+
+            foreach ($userEntries as $eintrag) {
+                $datum = \Carbon\Carbon::parse($eintrag->datum)->startOfDay();
+
+                // Passenden Satz im Speicher suchen
+                $passenderSatz = $userRates->first(function ($satz) use ($datum, $eintrag) {
+                    if ($satz->fk_abteilungID != $eintrag->fk_abteilung) return false;
+                    $start = \Carbon\Carbon::parse($satz->gueltigVon)->startOfDay();
+                    $end = $satz->gueltigBis ? \Carbon\Carbon::parse($satz->gueltigBis)->endOfDay() : null;
+                    return $datum->gte($start) && ($end === null || $datum->lte($end));
+                });
+
+                if ($passenderSatz) {
+                    $basisSatz = (float)$passenderSatz->satz;
+                    $multiplikator = 1.0;
+
+                    // Feiertag prüfen
+                    if ($provider && $provider->isHoliday($datum)) {
+                        $zuschlagRegel = $alleZuschlaege->first(function($z) use ($datum) {
+                            return $datum->gte($z->gueltigVon) &&
+                                ($z->gueltigBis === null || $datum->lte($z->gueltigBis));
+                        });
+                        if ($zuschlagRegel) {
+                            $multiplikator = (float)$zuschlagRegel->faktor;
+                        }
+                    }
+
+                    $usedAmount += round($eintrag->dauer * $basisSatz * $multiplikator, 2);
+                }
+            }
+
+            return [
+                'user_id' => $user->UserID,
+                'name' => $user->name . ', ' . $user->vorname,
+                'used' => round($usedAmount, 2),
+                'limit' => $limitWert,
+                'percent' => $limitWert > 0 ? round(($usedAmount / $limitWert) * 100, 1) : 0,
+            ];
+        });
+
+        // Sortieren: Wer am meisten verbraucht hat, steht oben
+        return response()->json($result->sortByDesc('percent')->values());
+    }
 }

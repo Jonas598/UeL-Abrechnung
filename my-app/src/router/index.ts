@@ -28,6 +28,7 @@ import AdminDepartments from "../views/Administrator/AdminDepartments.vue"
 import AdminZuschlag from "../views/Administrator/AdminZuschlag.vue"
 import AdminLimits from "../views/Administrator/AdminLimits.vue";
 import GS_LizenzenVerwalten from "../views/Geschaeftsstelle/GS_LizenzenVerwalten.vue";
+import GS_BudgetOverview from "../views/Geschaeftsstelle/GS_BudgetOverview.vue";
 
 const API_URL = import.meta.env.VITE_API_URL + '/api'
 
@@ -58,6 +59,7 @@ const routes: RouteRecordRaw[] = [
     {path: '/admin/zuschlaege', name: 'AdminZuschlag', component: AdminZuschlag, meta: {requiresAuth: true}},
     {path: '/limits', name: 'AdminLimits', component: AdminLimits, meta: { requiresAuth: true }},
     {path: '/geschaeftsstelle/licenses', name: 'ManageLicenses', component: GS_LizenzenVerwalten, meta: { requiresAuth: true }},
+    {path: '/geschaeftsstelle/budgets', name: 'GSBudgets', component: GS_BudgetOverview, meta: { requiresAuth: true}},
 
 ]
 
