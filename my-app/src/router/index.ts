@@ -27,6 +27,8 @@ import UelStundensatzUebersicht from '../views/Uebungsleiter/UEL_StundensatzUebe
 import AdminDepartments from "../views/Administrator/AdminDepartments.vue"
 import AdminZuschlag from "../views/Administrator/AdminZuschlag.vue"
 import AdminLimits from "../views/Administrator/AdminLimits.vue";
+import AL_UebungsleiterLimitOverview from "../views/Abteilungsleiter/AL_UebungsleiterLimitOverview.vue";
+import GS_UebungsleiterLimitOverview from "../views/Geschaeftsstelle/GS_UebungsleiterLimitOverview.vue";
 
 const API_URL = import.meta.env.VITE_API_URL + '/api'
 
@@ -56,8 +58,8 @@ const routes: RouteRecordRaw[] = [
     {path: '/admin/abteilungen', name: 'AdminDepartments', component: AdminDepartments, meta: { requiresAuth: true }},
     {path: '/admin/zuschlaege', name: 'AdminZuschlag', component: AdminZuschlag, meta: {requiresAuth: true}},
     {path: '/limits', name: 'AdminLimits', component: AdminLimits, meta: { requiresAuth: true }},
-    {path: '/limits/overview',name: 'UebungsleiterLimitOverviewAL',component: () => import('../views/Abteilungsleiter/AL_UebungsleiterLimitOverview.vue'),meta: { requiresAuth: true }},
-    {path: '/limits/overview-gs',name: 'UebungsleiterLimitOverviewGS',component: () => import('../views/Geschaeftsstelle/GS_UebungsleiterLimitOverview.vue'),meta: { requiresAuth: true }},
+    {path: '/limits/overview',name: 'UebungsleiterLimitOverviewAL',component: AL_UebungsleiterLimitOverview,meta: { requiresAuth: true }},
+    {path: '/limits/overview-gs',name: 'UebungsleiterLimitOverviewGS',component: GS_UebungsleiterLimitOverview,meta: { requiresAuth: true }},
 ]
 
 const router = createRouter({
