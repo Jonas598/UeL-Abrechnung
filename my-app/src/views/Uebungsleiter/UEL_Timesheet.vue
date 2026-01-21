@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import axios from 'axios'
+import apiClient from '../../services/apiClient'
 import type { VForm } from 'vuetify/components'
 
 type Department = { id: number, name: string }
@@ -37,7 +37,7 @@ const originalData = ref<{
 // 1. Abteilungen laden
 async function fetchUserDepartments() {
   try {
-    const response = await axios.get(import.meta.env.VITE_API_URL + '/api/meine-uel-abteilungen')
+    const response = await apiClient.get('/meine-uel-abteilungen')
     departments.value = response.data
   } catch (error: any) {
     if (error.response?.status === 401) router.push({ name: 'Login' })
@@ -48,7 +48,7 @@ async function fetchUserDepartments() {
 async function loadEntry(id: string) {
   isLoading.value = true
   try {
-    const response = await axios.get(import.meta.env.VITE_API_URL + '/api/stundeneintrag/${id}')
+    const response = await apiClient.get(`/stundeneintrag/${id}`)
     const data = response.data
 
     entryId.value = id
@@ -67,8 +67,9 @@ async function loadEntry(id: string) {
       fk_abteilung: selectedDepartment.value
     }
 
-  } catch (error) {
-    alert("Fehler beim Laden.")
+  } catch (error: any) {
+    console.error('Fehler beim Laden des Eintrags:', error)
+    alert('Fehler beim Laden: ' + (error.response?.data?.message || 'Unbekannter Fehler'))
     goBack()
   } finally {
     isLoading.value = false
@@ -89,11 +90,14 @@ function hasChanges(): boolean {
 
 onMounted(async () => {
   await fetchUserDepartments()
-  if (route.query.id) {
-    await loadEntry(route.query.id as string)
+
+  const queryId = Array.isArray(route.query.id) ? route.query.id[0] : route.query.id
+  if (queryId) {
+    await loadEntry(String(queryId))
   } else {
     if (departments.value.length === 1) {
-      selectedDepartment.value = departments.value[0].id
+      const onlyDept = departments.value[0]
+      if (onlyDept) selectedDepartment.value = onlyDept.id
     }
   }
 })
@@ -106,7 +110,7 @@ async function deleteEntry() {
 
   isLoading.value = true
   try {
-    await axios.delete(import.meta.env.VITE_API_URL + `/api/stundeneintrag/${entryId.value}`)
+    await apiClient.delete(`/stundeneintrag/${entryId.value}`)
     router.push({ name: 'Drafts' })
   } catch (error: any) {
     alert("Fehler beim Löschen: " + (error.response?.data?.message || 'Unbekannt'))
@@ -138,10 +142,10 @@ async function onSubmit() {
 
   try {
     if (isEditMode.value) {
-      await axios.put(import.meta.env.VITE_API_URL + '/api/stundeneintrag/${entryId.value}', payload)
+      await apiClient.put(`/stundeneintrag/${entryId.value}`, payload)
       alert("Eintrag aktualisiert!")
     } else {
-      await axios.post(import.meta.env.VITE_API_URL + '/api/stundeneintrag', payload)
+      await apiClient.post('/stundeneintrag', payload)
       alert("Eintrag erfolgreich erstellt!")
     }
     goBack()
