@@ -347,6 +347,15 @@ function formatCurrency(val: number) {
           >
             Übungsleiter Limit-Übersicht
           </v-btn>
+          <v-btn
+              class="w-100"
+              color="teal"
+              variant="tonal"
+              prepend-icon="mdi-cash-lock"
+              @click="router.push({ name: 'ManageLicences' })"
+          >
+            Lizenzen verwalten
+          </v-btn>
         </template>
 
 

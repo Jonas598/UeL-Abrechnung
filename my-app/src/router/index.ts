@@ -29,6 +29,7 @@ import AdminZuschlag from "../views/Administrator/AdminZuschlag.vue"
 import AdminLimits from "../views/Administrator/AdminLimits.vue";
 import AL_UebungsleiterLimitOverview from "../views/Abteilungsleiter/AL_UebungsleiterLimitOverview.vue";
 import GS_UebungsleiterLimitOverview from "../views/Geschaeftsstelle/GS_UebungsleiterLimitOverview.vue";
+import GS_LizenzenVerwalten from "../views/Geschaeftsstelle/GS_LizenzenVerwalten.vue";
 
 const API_URL = import.meta.env.VITE_API_URL + '/api'
 
@@ -58,6 +59,7 @@ const routes: RouteRecordRaw[] = [
     {path: '/admin/abteilungen', name: 'AdminDepartments', component: AdminDepartments, meta: { requiresAuth: true }},
     {path: '/admin/zuschlaege', name: 'AdminZuschlag', component: AdminZuschlag, meta: {requiresAuth: true}},
     {path: '/limits', name: 'AdminLimits', component: AdminLimits, meta: { requiresAuth: true }},
+    {path: '/geschaeftsstelle/licences',name: 'ManageLicences',component: GS_LizenzenVerwalten,meta: { requiresAuth: true }},
     {path: '/limits/overview',name: 'UebungsleiterLimitOverviewAL',component: AL_UebungsleiterLimitOverview,meta: { requiresAuth: true }},
     {path: '/limits/overview-gs',name: 'UebungsleiterLimitOverviewGS',component: GS_UebungsleiterLimitOverview,meta: { requiresAuth: true }},
 ]

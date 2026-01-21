@@ -26,6 +26,9 @@ const selectedTrainerDepartments = ref<number[]>([])
 const departments = ref<Department[]>([])
 const router = useRouter()
 
+const showInviteDialog = ref(false)
+const inviteLink = ref('')
+
 async function fetchDepartments() {
   try {
     const response = await axios.get(import.meta.env.VITE_API_URL + '/api/abteilungen')
@@ -79,7 +82,13 @@ async function onSubmit() {
     const response = await axios.post(import.meta.env.VITE_API_URL + '/api/create-user', payload)
 
     console.log('Erfolg:', response.data)
-    alert(`Benutzer ${firstName.value} erfolgreich angelegt!`)
+
+    if (response.data.invite_link) {
+      inviteLink.value = response.data.invite_link
+      showInviteDialog.value = true
+    } else {
+      alert(response.data.message)
+    }
 
     form.value?.reset()
     isOffice.value = false
@@ -99,6 +108,12 @@ async function onSubmit() {
 
   }
 }
+
+function copyToClipboard() {
+  navigator.clipboard.writeText(inviteLink.value)
+  alert('Link kopiert!')
+}
+
 function goBack() {
   router.push({ name: 'Dashboard' })
 }
@@ -260,6 +275,32 @@ function goBack() {
           </div>
 
         </v-form>
+        <v-dialog v-model="showInviteDialog" max-width="600">
+          <v-card>
+            <v-card-title>✅ Benutzer erfolgreich angelegt</v-card-title>
+            <v-card-text>
+              <p class="mb-2">Invite-Link wurde versendet:</p>
+              <v-text-field
+                  v-model="inviteLink"
+                  readonly
+                  variant="outlined"
+                  density="compact"
+              >
+                <template #append>
+                  <v-btn
+                      icon="mdi-content-copy"
+                      size="small"
+                      @click="copyToClipboard"
+                  />
+                </template>
+              </v-text-field>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn color="primary" @click="showInviteDialog = false">OK</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
       </v-card-text>
     </v-card>
   </div>
