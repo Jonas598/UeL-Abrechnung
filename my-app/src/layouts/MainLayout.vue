@@ -1,30 +1,38 @@
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { RouterView, useRouter } from 'vue-router'
 import logo from '../assets/ac-weinheim.png'
+
+const router = useRouter()
+
+function goHome() {
+  router.push({ name: 'Dashboard' })
+}
 </script>
 
 <template>
   <v-app>
     <v-app-bar app color="white" height="64" elevation="1">
-      <v-img
-          :src="logo"
-          alt="AC Weinheim"
-          max-height="44"
-          max-width="44"
-          contain
-          class="mr-4 rounded"
-      />
-      <v-toolbar-title class="text-h6 text-primary font-weight-medium">
-        ÜL Abrechnung AC Weinheim
-      </v-toolbar-title>
+
+      <div
+          class="d-flex align-center cursor-pointer ml-4"
+          @click="goHome"
+          title="Zum Dashboard"
+      >
+        <v-img
+            :src="logo"
+            alt="AC Weinheim"
+            height="44"
+            width="44"
+            class="rounded mr-4"
+        />
+
+        <div class="text-h6 text-primary font-weight-medium text-no-wrap">
+          ÜL Abrechnung AC Weinheim
+        </div>
+      </div>
 
       <v-spacer></v-spacer>
 
-<!--      <v-btn icon>
-        <v-avatar size="40">
-          <v-img :src="avatar" alt="Profil" />
-        </v-avatar>
-      </v-btn>-->
     </v-app-bar>
 
     <v-main>
@@ -44,6 +52,10 @@ import logo from '../assets/ac-weinheim.png'
 </template>
 
 <style>
+.cursor-pointer {
+  cursor: pointer;
+  user-select: none;
+}
 
 .rounded {
   border-radius: 6px;
