@@ -128,6 +128,8 @@
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/symfony/brevo-mailer" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/symfony/http-client" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/symfony/http-client-contracts" />
+      <excludeFolder url="file://$MODULE_DIR$/vendor/azuyalabs/yasumi" />
+      <excludeFolder url="file://$MODULE_DIR$/vendor/composer" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

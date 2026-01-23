@@ -354,7 +354,7 @@ class AbteilungsleiterController extends Controller
                     $stundensatz = $validRate ? (float)$validRate->satz : 0;
 
                     // B. Feiertag prüfen (Yasumi)
-                    $provider = Yasumi::create('Germany/NorthRhineWestphalia', $eintragDatum->year);
+                    $provider = Yasumi::create('Germany/BadenWurttemberg', $eintragDatum->year);
                     $isFeiertag = $provider->isHoliday($eintragDatum);
 
                     $multiplikator = 1.0;
@@ -441,10 +441,10 @@ class AbteilungsleiterController extends Controller
             return response()->json(['message' => 'Keine Berechtigung für diese Abteilung'], 403);
         }
 
+        // 4. Abrechnung-Status auf genehmigt setzen
         // Status ID 2 = Genehmigt (Anpassen!)
         $statusGenehmigt = 21;
 
-        // Log schreiben
         \App\Models\AbrechnungStatusLog::create([
             'fk_abrechnungID' => $abrechnung->AbrechnungID,
             'fk_statusID'     => $statusGenehmigt,
@@ -593,7 +593,7 @@ class AbteilungsleiterController extends Controller
                 $stundensatz = $validRate ? (float)$validRate->satz : 0;
 
                 // Feiertag & Zuschlag prüfen
-                $provider = Yasumi::create('Germany/NorthRhineWestphalia', $eintragDatum->year);
+                $provider = Yasumi::create('Germany/BadenWurttemberg', $eintragDatum->year);
                 $isFeiertag = $provider->isHoliday($eintragDatum);
 
                 $faktorZuschlag = 0;

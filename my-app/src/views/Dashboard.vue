@@ -268,6 +268,15 @@ function formatCurrency(val: number) {
           >
             Abrechnungshistorie
           </v-btn>
+          <v-btn
+              class="w-100"
+              color="blue"
+              variant="tonal"
+              prepend-icon="mdi-cash-lock"
+              @click="router.push({ name: 'UebungsleiterLimitOverviewAL' })"
+          >
+            Übungsleiter Limit-Übersicht
+          </v-btn>
 
           <div></div>
         </template>
@@ -311,15 +320,6 @@ function formatCurrency(val: number) {
           >
             Alle Stundensätze verwalten
           </v-btn>
-          <v-btn
-              class="w-100"
-              color="deep-purple"
-              variant="tonal"
-              prepend-icon="mdi-certificate"
-              @click="router.push({ name: 'ManageLicenses' })"
-          >
-            Lizenzen verwalten
-          </v-btn>
 
           <v-btn
               class="w-100"
@@ -340,12 +340,21 @@ function formatCurrency(val: number) {
           </v-btn>
           <v-btn
               class="w-100"
-              color="secondary"
+              color="teal"
               variant="tonal"
               prepend-icon="mdi-cash-lock"
-              @click="router.push({ name: 'GSBudgets' })"
+              @click="router.push({ name: 'UebungsleiterLimitOverviewGS' })"
           >
-            Übungsleiterpauschale Ausschöpfung
+            Übungsleiter Limit-Übersicht
+          </v-btn>
+          <v-btn
+              class="w-100"
+              color="teal"
+              variant="tonal"
+              prepend-icon="mdi-cash-lock"
+              @click="router.push({ name: 'ManageLicences' })"
+          >
+            Lizenzen verwalten
           </v-btn>
         </template>
 
@@ -387,6 +396,16 @@ function formatCurrency(val: number) {
               @click="router.push({ name: 'AdminZuschlag' })"
           >
             Zuschläge verwalten
+          </v-btn>
+
+          <v-btn
+              class="w-100"
+              color="secondary"
+              variant="tonal"
+              prepend-icon="mdi-cash-lock"
+              @click="router.push({ name: 'AdminLimits' })"
+          >
+            Übungsleiterpauschale verwalten
           </v-btn>
         </template>
 
